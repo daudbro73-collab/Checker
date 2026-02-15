@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  aml-backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: aml-service
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    # Add environment variables here if needed (e.g. API Keys)
+    # env_file:
+    #   - .env
+
+  # Optional: Nginx Reverse Proxy (for SSL/Domain)
+  # nginx:
+  #   image: nginx:latest
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./certs:/etc/nginx/certs
+  #   depends_on:
+  #     - aml-backend

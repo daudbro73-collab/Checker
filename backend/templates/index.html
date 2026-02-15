@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ trans.dir }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ trans.title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #030712; /* Deep Space Black */
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 40%),
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: #e2e8f0;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        .neon-input:focus {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            border-color: #38bdf8;
+        }
+        .neon-btn {
+            background: linear-gradient(90deg, #0ea5e9, #6366f1);
+            transition: all 0.3s ease;
+        }
+        .neon-btn:hover {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+            transform: translateY(-1px);
+        }
+        .risk-high { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        .risk-med { color: #f59e0b; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+        .risk-low { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="w-full py-6 px-8 flex justify-between items-center border-b border-slate-800 glass-card sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">AML GUARDIAN</h1>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+             <!-- Language Switcher -->
+             <div class="flex space-x-2 text-xs font-mono">
+                <a href="?lang=en" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'en' else 'text-slate-500 hover:text-slate-300' }}">EN</a>
+                <a href="?lang=ru" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'ru' else 'text-slate-500 hover:text-slate-300' }}">RU</a>
+                <a href="?lang=ar" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'ar' else 'text-slate-500 hover:text-slate-300' }}">AR</a>
+                <a href="?lang=zh" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'zh' else 'text-slate-500 hover:text-slate-300' }}">ZH</a>
+            </div>
+            <div class="hidden md:flex text-xs text-slate-400 font-mono items-center border-l border-slate-700 pl-4">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span> {{ trans.system_status }}
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-12 max-w-6xl">
+        
+        <!-- Search Section -->
+        <div class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4 text-white">{{ trans.heading_prefix }} <span class="text-cyan-400">{{ trans.heading_suffix }}</span></h2>
+            <p class="text-slate-400 text-lg mb-8 max-w-2xl mx-auto">{{ trans.subheading }}</p>
+            
+            <div class="glass-card p-2 rounded-2xl max-w-3xl mx-auto flex flex-col md:flex-row gap-2 transition-all duration-300 hover:border-cyan-500/30">
+                <select id="chain" class="bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-4 focus:outline-none focus:border-cyan-500 transition-colors w-full md:w-48 font-mono text-sm appearance-none cursor-pointer hover:bg-slate-800/50">
+                    <option value="ETH">Ethereum (ETH)</option>
+                    <option value="TRON">Tron (TRX/USDT)</option>
+                    <option value="BTC">Bitcoin (BTC)</option>
+                    <option value="BSC">BSC (BNB)</option>
+                    <option value="POLYGON">Polygon</option>
+                    <option value="AVALANCHE">Avalanche</option>
+                    <option value="OPTIMISM">Optimism</option>
+                </select>
+                
+                <div class="relative w-full">
+                    <input type="text" id="address" placeholder="{{ trans.placeholder }}" 
+                        class="bg-slate-900/50 border border-slate-700 text-white rounded-xl pl-6 pr-12 py-4 w-full focus:outline-none neon-input transition-all font-mono text-sm tracking-wide"
+                        onkeypress="if(event.key === 'Enter') checkWallet()">
+                    <button onclick="navigator.clipboard.readText().then(t=>document.getElementById('address').value=t)" 
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-cyan-400 p-2 transition-colors" title="Paste">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </button>
+                </div>
+
+                <button onclick="checkWallet()" class="neon-btn text-white font-bold py-4 px-8 rounded-xl shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
+                    <span>{{ trans.analyze_btn }}</span>
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="hidden flex flex-col items-center justify-center py-12">
+            <div class="relative w-24 h-24 mb-6">
+                <div class="absolute inset-0 border-4 border-cyan-500/20 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-t-cyan-500 rounded-full animate-spin"></div>
+                <div class="absolute inset-4 border-4 border-indigo-500/20 rounded-full"></div>
+                <div class="absolute inset-4 border-4 border-b-indigo-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                </div>
+            </div>
+            <p class="text-cyan-400 font-mono text-sm animate-pulse tracking-widest">{{ trans.scanning }}</p>
+            <p class="text-indigo-400 font-mono text-xs mt-2 opacity-70">{{ trans.calculating }}</p>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div id="result" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
+            
+            <!-- Left Column: Score & Details -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Risk Score Card -->
+                <div class="glass-card rounded-2xl p-6 text-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-indigo-500"></div>
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">{{ trans.risk_score }}</h3>
+                    <div class="relative w-40 h-40 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="80" cy="80" r="70" stroke="#1e293b" stroke-width="12" fill="none"></circle>
+                            <circle id="score-circle" cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="none" stroke-dasharray="440" stroke-dashoffset="440" class="text-cyan-500 transition-all duration-1000 ease-out"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="score-val" class="text-5xl font-bold text-white brand-font">0</span>
+                            <span id="risk-level" class="text-xs font-bold px-2 py-1 rounded bg-slate-800 mt-1">{{ trans.safe }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wallet Details -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">Asset Overview</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-500 text-sm">{{ trans.balance }}</span>
+                            <span id="balance-val" class="text-white font-mono font-bold">0.00</span>
+                        </div>
+                        <div id="usdt-row" class="hidden flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-500 text-sm">USDT</span>
+                            <span id="usdt-val" class="text-green-400 font-mono font-bold">0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-500 text-sm">{{ trans.tx_count }}</span>
+                            <span id="tx-count" class="text-white font-mono">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 text-sm">{{ trans.sanctions }}</span>
+                            <span id="sanction-status" class="text-green-400 text-xs px-2 py-1 bg-green-400/10 rounded border border-green-400/20">{{ trans.clean }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle/Right Column: Graph & Factors -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Graph Visualization -->
+                <div class="glass-card rounded-2xl p-6 h-[400px] flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest">Transaction Flow Graph</h3>
+                        <div class="flex space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-blue-500"></span><span class="text-xs text-slate-500 mr-2">Target</span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="text-xs text-slate-500 mr-2">In</span>
+                            <span class="w-3 h-3 rounded-full bg-red-500"></span><span class="text-xs text-slate-500">Out</span>
+                        </div>
+                    </div>
+                    <div id="cy" class="flex-grow w-full bg-slate-900/50 rounded-xl border border-slate-800"></div>
+                </div>
+
+                <!-- Risk Factors -->
+                <div id="risk-factors" class="glass-card rounded-2xl p-6 hidden">
+                    <h3 class="text-sm font-semibold text-red-400 uppercase tracking-widest mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Risk Factors
+                    </h3>
+                    <ul id="risk-list" class="space-y-3 text-sm"></ul>
+                </div>
+
+                <!-- Recent Transactions Table -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-xl text-cyan-400 mb-4 flex items-center gap-2 font-bold">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        {{ trans.recent_txs }}
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-800">
+                                    <th class="p-3">Hash</th>
+                                    <th class="p-3">From</th>
+                                    <th class="p-3">To</th>
+                                    <th class="p-3">Value</th>
+                                    <th class="p-3">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="txTableBody" class="text-slate-300">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Download Button -->
+        <div id="download-section" class="hidden text-center mt-12 pb-12">
+            <button onclick="downloadPDF()" class="group relative inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-slate-800 border border-slate-700 rounded-full hover:bg-slate-700 transition-all">
+                <span class="absolute w-full h-full bg-gradient-to-r from-cyan-500 to-blue-500 opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></span>
+                <svg class="w-5 h-5 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                {{ trans.feat_pdf }}
+            </button>
+        </div>
+
+        <!-- Pricing Section (Monetization) -->
+        <div id="pricing" class="mt-20 border-t border-slate-800 pt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-white mb-2">{{ trans.pricing_title }}</h2>
+                <p class="text-slate-400">{{ trans.pricing_sub }}</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Free Plan -->
+                <div class="glass-card p-8 rounded-2xl hover:border-cyan-500/30 transition-all">
+                    <h3 class="text-xl font-bold text-slate-300 mb-2">{{ trans.plan_free }}</h3>
+                    <div class="text-3xl font-bold text-white mb-1">{{ trans.plan_free_price }}</div>
+                    <div class="text-sm text-slate-500 mb-6">{{ trans.plan_free_desc }}</div>
+                    <ul class="space-y-3 text-sm text-slate-300 mb-8">
+                        <li class="flex items-center"><svg class="w-4 h-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 5 {{ trans.feat_checks }}</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Basic {{ trans.risk_score }}</li>
+                        <li class="flex items-center opacity-50"><svg class="w-4 h-4 text-slate-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> {{ trans.feat_pdf }}</li>
+                    </ul>
+                    <button class="w-full py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition">Current Plan</button>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="glass-card p-8 rounded-2xl border-cyan-500/50 shadow-lg shadow-cyan-500/10 transform scale-105 z-10">
+                    <div class="absolute top-0 right-0 bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
+                    <h3 class="text-xl font-bold text-white mb-2">{{ trans.plan_pro }}</h3>
+                    <div class="text-3xl font-bold text-cyan-400 mb-1">{{ trans.plan_pro_price }}<span class="text-sm text-slate-400 font-normal">{{ trans.plan_pro_period }}</span></div>
+                    <div class="text-sm text-slate-400 mb-6">{{ trans.plan_pro_desc }}</div>
+                    <ul class="space-y-3 text-sm text-white mb-8">
+                        <li class="flex items-center"><svg class="w-4 h-4 text-cyan-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Unlimited {{ trans.feat_checks }}</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 text-cyan-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ trans.feat_pdf }}</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 text-cyan-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Advanced Graph</li>
+                    </ul>
+                    <button class="w-full py-2 neon-btn rounded-lg text-white font-bold hover:shadow-lg transition">Upgrade Now</button>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="glass-card p-8 rounded-2xl hover:border-indigo-500/30 transition-all">
+                    <h3 class="text-xl font-bold text-slate-300 mb-2">{{ trans.plan_ent }}</h3>
+                    <div class="text-3xl font-bold text-white mb-1">{{ trans.plan_ent_price }}</div>
+                    <div class="text-sm text-slate-500 mb-6">{{ trans.plan_ent_desc }}</div>
+                    <ul class="space-y-3 text-sm text-slate-300 mb-8">
+                        <li class="flex items-center"><svg class="w-4 h-4 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ trans.feat_api }}</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> White Label</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ trans.feat_support }}</li>
+                    </ul>
+                    <button class="w-full py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition">Contact Sales</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <footer class="text-center py-8 text-slate-600 text-xs border-t border-slate-900 mt-12">
+        {{ trans.footer }}
+    </footer>
+
+    <script>
+        // Inject Translations for JS
+        const TRANS = {{ trans | tojson }};
+
+        async function checkWallet() {
+            const chain = document.getElementById('chain').value;
+            const address = document.getElementById('address').value;
+            
+            if(!address) return alert(TRANS.placeholder_error);
+
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('download-section').classList.add('hidden');
+
+            try {
+                // Pass current lang if API needs it (optional, mainly for errors if implemented)
+                const res = await fetch(`/check?chain=${chain}&address=${address}`);
+                if (!res.ok) throw new Error(TRANS.server_error);
+                
+                const data = await res.json();
+                
+                if (data.chain_data && data.chain_data.error) {
+                    throw new Error(data.chain_data.error);
+                }
+                
+                // Update UI
+                const score = data.risk_score;
+                document.getElementById('score-val').innerText = score;
+                
+                // Animate Circle
+                const circle = document.getElementById('score-circle');
+                const offset = 440 - (440 * score) / 100;
+                circle.style.strokeDashoffset = offset;
+                
+                // Risk Color & Text (Localized)
+                let color = "#10b981";
+                let levelText = TRANS.safe;
+                if(score > 75) { color = "#ef4444"; levelText = TRANS.critical; }
+                else if(score > 40) { color = "#f59e0b"; levelText = TRANS.warning; }
+                
+                circle.style.stroke = color;
+                const levelEl = document.getElementById('risk-level');
+                levelEl.innerText = levelText;
+                levelEl.className = `text-xs font-bold px-2 py-1 rounded mt-1 text-white`;
+                levelEl.style.backgroundColor = color;
+
+                // Data
+                document.getElementById('balance-val').innerText = data.chain_data.balance_display || "0";
+                document.getElementById('tx-count').innerText = data.chain_data.tx_count || "0";
+                
+                // Handle USDT specifically for TRON
+                if (data.chain_data.balance_usdt !== undefined && data.chain_data.balance_usdt > 0) {
+                    document.getElementById('usdt-row').classList.remove('hidden');
+                    document.getElementById('usdt-val').innerText = data.chain_data.balance_usdt.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                } else {
+                    document.getElementById('usdt-row').classList.add('hidden');
+                }
+
+                if(data.sanctions.is_sanctioned) {
+                    const s = document.getElementById('sanction-status');
+                    s.innerText = TRANS.sanctioned;
+                    s.className = "text-red-400 text-xs px-2 py-1 bg-red-400/10 rounded border border-red-400/20";
+                } else {
+                    const s = document.getElementById('sanction-status');
+                    s.innerText = TRANS.clean;
+                    s.className = "text-green-400 text-xs px-2 py-1 bg-green-400/10 rounded border border-green-400/20";
+                }
+
+                // Risk Factors
+                const riskList = document.getElementById('risk-list');
+                riskList.innerHTML = "";
+                const factorsDiv = document.getElementById('risk-factors');
+                
+                if(data.risk_factors && data.risk_factors.length > 0) {
+                    factorsDiv.classList.remove('hidden');
+                    data.risk_factors.forEach(f => {
+                        const li = document.createElement('li');
+                        li.className = "flex items-start bg-red-500/5 p-3 rounded border border-red-500/10";
+                        li.innerHTML = `<span class="font-bold text-red-400 mr-2">[${f.level}]</span> <span class="text-slate-300">${f.desc}</span>`;
+                        riskList.appendChild(li);
+                    });
+                } else {
+                    factorsDiv.classList.add('hidden');
+                }
+
+                // Graph
+                renderGraph(data.graph_data);
+
+                // Render Transactions Table
+                const tbody = document.getElementById('txTableBody');
+                tbody.innerHTML = '';
+                if (data.chain_data.tx_list && data.chain_data.tx_list.length > 0) {
+                    data.chain_data.tx_list.forEach(tx => {
+                        const date = tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleDateString() : 'N/A';
+                        const row = `
+                            <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition">
+                                <td class="p-3 font-mono text-xs text-cyan-400"><a href="${tx.explorer_url}" target="_blank">${tx.hash.substring(0, 10)}...</a></td>
+                                <td class="p-3 font-mono text-xs">${tx.from.substring(0, 8)}...</td>
+                                <td class="p-3 font-mono text-xs">${tx.to.substring(0, 8)}...</td>
+                                <td class="p-3 font-bold">${tx.value}</td>
+                                <td class="p-3 text-xs text-slate-500">${date}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">' + TRANS.no_tx_found + '</td></tr>';
+                }
+
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('result').classList.remove('hidden');
+                document.getElementById('download-section').classList.remove('hidden');
+
+            } catch(e) {
+                // Show error in UI instead of alert
+                const loader = document.getElementById('loader');
+                loader.classList.add('hidden');
+                loader.innerHTML = `
+                    <div class="text-red-500 font-bold mb-2">ERROR</div>
+                    <div class="text-slate-400 text-sm">${e.message}</div>
+                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-slate-800 rounded text-xs hover:bg-slate-700">RETRY</button>
+                `;
+                loader.classList.remove('hidden');
+            }
+        }
+
+        function renderGraph(elements) {
+            cytoscape({
+                container: document.getElementById('cy'),
+                elements: elements,
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': 'data(color)',
+                            'label': 'data(label)',
+                            'color': '#cbd5e1',
+                            'font-size': 10,
+                            'text-valign': 'bottom',
+                            'text-margin-y': 5
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2,
+                            'line-color': '#475569',
+                            'target-arrow-color': '#475569',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'label': 'data(label)',
+                            'color': '#64748b',
+                            'font-size': 8,
+                            'text-background-opacity': 1,
+                            'text-background-color': '#0f172a',
+                            'text-background-padding': 2
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'concentric',
+                    minNodeSpacing: 50
+                }
+            });
+        }
+
+        function downloadPDF() {
+            const address = document.getElementById('address').value;
+            const chain = document.getElementById('chain').value;
+            window.open(`/report?address=${address}&chain=${chain}`, '_blank');
+        }
+    </script>
+</body>
+</html>

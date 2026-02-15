@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+httpx
+pydantic
+reportlab
+python-multipart
+aiofiles
+jinja2
