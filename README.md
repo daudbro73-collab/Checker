@@ -147,15 +147,6 @@ pip install -r requirements.txt
 python -c "from database import init_db; init_db()"
 python scripts/seed_admin.py
 
-# 5. Run
-uvicorn main:app --reload --port 8000
-```
-
-| URL | What |
-|-----|------|
-| `localhost:8000` | Landing page |
-| `localhost:8000/webapp` | Telegram Mini App UI |
-| `localhost:8000/docs` | Swagger / OpenAPI |
 
 ### Docker (Production)
 
