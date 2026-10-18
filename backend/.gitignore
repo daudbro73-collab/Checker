@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments — ALL variants
+.venv/
+.venv*/
+venv/
+venv*/
+env/
+
+# Secrets & Config — NEVER commit
+.env
+.env.*
+!.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+cloudflared.log
+uvicorn.log
+bot.log
+
+# PDFs (generated)
+*.pdf
+report_*.pdf
+sample_report.pdf
+
+# Test / CI cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Deploy archives
+*.tar.gz
+*.zip
+aml_deploy*
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

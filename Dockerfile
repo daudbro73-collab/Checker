@@ -25,4 +25,4 @@ EXPOSE 8000
 
 # Run the application
 # Using 0.0.0.0 to allow external access within the container network
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]

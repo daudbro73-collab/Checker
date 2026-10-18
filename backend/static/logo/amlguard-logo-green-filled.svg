@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-label="AML Guard logo green filled">
+  <title>AML Guard logo green filled</title>
+  <g fill="#25A84A">
+    <path fill-rule="evenodd" d="
+      M500 20
+      m-230 0
+      a230 230 0 1 0 460 0
+      a230 230 0 1 0 -460 0
+      M500 85
+      m-165 0
+      a165 165 0 1 1 330 0
+      a165 165 0 1 1 -330 0
+      M0 360H430V500H0Z
+      M570 360H1000V500H570Z
+    "/>
+    <path fill-rule="evenodd" d="
+      M500 85
+      m-165 0
+      a165 165 0 1 0 330 0
+      a165 165 0 1 0 -330 0
+      M500 125
+      m-125 0
+      a125 125 0 1 1 250 0
+      a125 125 0 1 1 -250 0
+      M0 340H450V500H0Z
+      M550 340H1000V500H550Z
+    "/>
+    <rect x="445" y="300" width="110" height="165" rx="55"/>
+  </g>
+</svg>

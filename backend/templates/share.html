@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AML Guard — Proof #{{ check_id }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: ui-sans-serif, system-ui, sans-serif; background: #020617; color: #e2e8f0; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+{% set level = data.get('risk_level', 'SAFE') %}
+{% set score = data.get('risk_score', 0) %}
+{% set verdict = data.get('verdict') or {} %}
+{% set meta = data.get('scoring_meta') or {} %}
+{% set versions = data.get('list_versions') or {} %}
+{% set color = '#10b981' if level == 'SAFE' else ('#f59e0b' if level == 'CAUTION' else ('#f97316' if level == 'WARNING' else '#ef4444')) %}
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <header class="flex items-center justify-between">
+        <div class="text-cyan-400 font-bold tracking-widest">AML GUARD</div>
+        <div class="text-xs text-slate-500">Proof link · TTL 7 days</div>
+    </header>
+
+    <section class="rounded-2xl border border-slate-800 bg-slate-950/80 p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <div class="text-3xl font-bold" style="color: {{ color }}">{{ level }} — {{ score }}/100</div>
+                <div class="mt-2 font-mono text-sm text-slate-300 break-all">{{ data.get('address') }}</div>
+                <div class="text-xs text-slate-500 mt-1">{{ data.get('chain') }} · check #{{ check_id }}</div>
+            </div>
+        </div>
+
+        {% if verdict.get('why') %}
+        <p class="mt-4 text-slate-200 leading-relaxed">
+            {% for w in verdict.why[:3] %}{{ w }}{% if not loop.last %} · {% endif %}{% endfor %}
+        </p>
+        {% endif %}
+
+        {% if verdict.get('what_to_do') %}
+        <div class="mt-4 rounded-xl bg-slate-900 border border-slate-800 p-4 text-sm text-slate-300">
+            <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">What to do</div>
+            {{ verdict.what_to_do }}
+        </div>
+        {% endif %}
+
+        {% if meta.get('exposure_pct_in_90d') is not none %}
+        <div class="mt-4 text-sm text-slate-400">
+            Inbound exposure (90d, dust-filtered): <span class="text-white font-mono">{{ meta.exposure_pct_in_90d }}%</span>
+            {% if meta.get('dust_filtered') %} · dust ignored: {{ meta.dust_filtered }}{% endif %}
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="rounded-2xl border border-slate-800 bg-slate-950/80 p-6">
+        <h2 class="text-xs uppercase tracking-widest text-slate-500 mb-3">Factors</h2>
+        <ul class="space-y-3">
+        {% for f in data.get('risk_factors') or [] %}
+            <li class="rounded-xl border border-slate-800 bg-slate-900/50 p-3 text-sm">
+                <div class="font-semibold text-slate-100">[{{ f.get('level') }}] {{ f.get('desc') }}</div>
+                <div class="text-xs text-slate-400 mt-1">{{ f.get('details') }}</div>
+                {% if f.get('source') %}
+                <div class="text-[10px] text-slate-500 mt-2">
+                    Source: {{ f.get('source') }}{% if f.get('source_date') %} · {{ f.get('source_date') }}{% endif %}
+                    · {{ f.get('confidence', 'low') }} confidence · {{ f.get('signal_type', 'behavioral') }}
+                </div>
+                {% endif %}
+            </li>
+        {% else %}
+            <li class="text-sm text-slate-500">No elevated factors.</li>
+        {% endfor %}
+        </ul>
+    </section>
+
+    <section class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 text-xs text-slate-500">
+        <div class="mb-2">Data stamps:
+            {% for k, v in versions.items() %}{{ k }} {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}
+            {% if not versions %}n/a{% endif %}
+        </div>
+        <div>{{ data.get('disclaimer') or 'Informational heuristic assessment. Not legal or compliance advice.' }}</div>
+        {% if expires_at %}<div class="mt-2">Expires: {{ expires_at }}</div>{% endif %}
+    </section>
+
+    <p class="text-center text-xs text-slate-600">
+        <a class="text-cyan-500 hover:underline" href="/">Run your own check on AML Guard</a>
+    </p>
+</div>
+</body>
+</html>

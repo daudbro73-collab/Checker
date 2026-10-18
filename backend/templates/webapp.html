@@ -1,0 +1,2432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AML Guard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #020203;
+            --card-dark: rgba(2, 6, 23, 0.78);
+            --primary: #6366f1;
+            --accent: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-dark) !important;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(30, 27, 75, 0.35) 0%, transparent 38%),
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
+            background-size: 100% 100%, 40px 40px, 40px 40px !important;
+            background-attachment: fixed;
+            color: #e2e8f0 !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .font-display, h1, h2, h3, .brand-font { font-family: 'Montserrat', sans-serif; font-weight: 700; }
+
+        /* Glassmorphism */
+        .glass-card {
+            background: var(--card-dark) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Gradients */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .bg-gradient-brand {
+            background: linear-gradient(90deg, #0ea5e9, #6366f1);
+        }
+        
+        .neon-btn {
+            background: linear-gradient(90deg, #0ea5e9, #6366f1);
+            transition: all 0.3s ease;
+        }
+        .neon-btn:hover {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+            transform: translateY(-1px);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .animate-enter { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .shimmer-bg {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+            animation: shimmer 1.6s infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* Safe Area Utilities */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+
+        #graph-stage {
+            position: relative;
+            overflow: hidden;
+            min-height: 420px;
+            height: 420px;
+            background:
+                radial-gradient(ellipse 70% 55% at 50% 42%, rgba(34, 211, 238, 0.07), transparent 62%),
+                #070b14;
+            border-radius: 1rem;
+        }
+        #cy { position: absolute; inset: 0; z-index: 1; }
+        .graph-hud {
+            position: absolute; inset: 0; z-index: 2; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 10px;
+        }
+        .graph-chip {
+            pointer-events: auto; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+            color: #94a3b8; background: rgba(2,6,23,0.75); border: 1px solid rgba(148,163,184,0.25);
+            border-radius: 999px; padding: 3px 8px;
+        }
+        .graph-chip.is-live { color: #67e8f9; border-color: rgba(34,211,238,0.35); }
+        .graph-chip.is-alert { color: #fca5a5; border-color: rgba(248,113,113,0.4); }
+        .graph-skip {
+            pointer-events: auto; font-size: 11px; color: #cbd5e1;
+            background: rgba(15,23,42,0.85); border: 1px solid rgba(148,163,184,0.35);
+            border-radius: 8px; padding: 4px 10px;
+        }
+        #graph-node-panel {
+            display: none;
+            position: absolute;
+            z-index: 5;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            margin: 0;
+            padding: 10px;
+            border-radius: 12px;
+            background: rgba(2,6,23,0.92);
+            border: 1px solid rgba(56,189,248,0.35);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            pointer-events: auto;
+        }
+        #graph-node-panel.is-open { display: block; }
+        #graph-node-panel.is-floating {
+            right: auto;
+            bottom: auto;
+            width: min(300px, calc(100% - 20px));
+        }
+        #graph-node-panel.is-sanctioned {
+            border-color: rgba(248,113,113,0.55);
+            background: rgba(40,8,8,0.92);
+        }
+        .graph-node-addr {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px; color: #e2e8f0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            line-height: 1.3; max-width: 100%;
+        }
+        .graph-copy-btn {
+            flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; padding: 0; border-radius: 8px;
+            border: 1px solid rgba(148,163,184,0.35);
+            background: rgba(2,6,23,0.8); color: #67e8f9;
+        }
+        .graph-copy-btn.copied { color: #34d399; border-color: rgba(52,211,153,0.45); }
+        .graph-copy-btn svg { width: 14px; height: 14px; }
+        .chain-btn img { width: 14px; height: 14px; display: inline-block; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+</head>
+<body class="min-h-screen flex flex-col pb-20 relative overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="relative z-[100] px-6 py-4 flex justify-between items-center animate-enter" style="animation-delay: 0.1s">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-display font-bold text-lg leading-none tracking-tight"><span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">AML GUARD</span></h1>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <!-- Language Selector -->
+            <div class="relative z-[110]">
+                <button onclick="toggleLangMenu()" class="glass-card w-8 h-8 rounded-full flex items-center justify-center border border-slate-700 overflow-hidden">
+                    <span id="current-lang-flag" class="text-sm">🇷🇺</span>
+                </button>
+                <div id="lang-menu" class="hidden absolute right-0 top-10 rounded-xl p-2 flex flex-col gap-1 z-[120] min-w-[148px] bg-[#0b1121] border border-slate-600/80 shadow-2xl shadow-black/60">
+                    <button type="button" onclick="setLanguage('ru')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200 w-full text-left">
+                        <span>🇷🇺</span> Русский
+                    </button>
+                    <button type="button" onclick="setLanguage('en')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200 w-full text-left">
+                        <span>🇺🇸</span> English
+                    </button>
+                    <button type="button" onclick="setLanguage('es')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200 w-full text-left">
+                        <span>🇪🇸</span> Español
+                    </button>
+                    <button type="button" onclick="setLanguage('ar')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200 w-full text-left">
+                        <span>🇸🇦</span> العربية
+                    </button>
+                    <button type="button" onclick="setLanguage('fr')" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200 w-full text-left">
+                        <span>🇫🇷</span> Français
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-full pl-3 pr-1 py-1 flex items-center gap-3">
+                <span id="user-balance" class="text-xs font-mono font-medium text-slate-300">$0.00</span>
+                <button type="button" id="topup-btn" onclick="openTopUp()"
+                    class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors border-0"
+                    aria-label="Top up">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top-up modal -->
+    <div id="pay-modal" class="fixed inset-0 z-[120] hidden items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
+        <div class="glass-card w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 border border-slate-700/60 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button type="button" onclick="closeTopUp()" class="absolute top-3 right-3 p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800/80" aria-label="Close">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-lg font-bold text-white mb-1 pr-8" data-i18n="pay_title">Top Up Balance</h2>
+            <p class="text-xs text-slate-400 mb-4" data-i18n="pay_sub">Deposit USDT (TRC-20 preferred)</p>
+
+            <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1" data-i18n="pay_product_label">Product</label>
+            <select id="pay-product" onchange="onPayProductChange()" class="w-full mb-3 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                <option value="single_check">1 проверка — $1 (50 ⭐️)</option>
+                <option value="pack_10">10 проверок — $7 (350 ⭐️ · Выгода 30%)</option>
+                <option value="pack_20" selected>20 проверок — $10 (500 ⭐️ · ХИТ · $0.50/чек)</option>
+                <option value="balance">Произвольное пополнение ($)</option>
+            </select>
+
+            <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1" data-i18n="pay_method_label">Payment method</label>
+            <select id="pay-method" onchange="onPayMethodChange()" class="w-full mb-1 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                <option value="telegram_stars" selected>⭐️ Telegram Stars (Мгновенно в 1 клик)</option>
+                <option value="crypto_usdt">USDT (TRON / BSC / SOL / ETH)</option>
+                <option value="sbp" disabled>СБП (RUB) — скоро</option>
+                <option value="card_rub" disabled>Банковская карта (RUB) — скоро</option>
+            </select>
+            <p id="pay-method-hint" class="text-[10px] text-amber-400/90 mb-3">Оплата в 1 клик через встроенные Telegram Stars (Apple/Google Pay или баланс TG).</p>
+
+            <!-- Telegram Stars Info Box -->
+            <div id="stars-pay-fields" class="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center gap-3">
+                <div class="text-3xl">⭐️</div>
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs font-bold text-amber-200">Быстрая оплата в Telegram</div>
+                    <div class="text-[11px] text-slate-300 mt-0.5 leading-tight">Без ожидания подтверждений блокчейна и без ввода хэшей транзакций.</div>
+                </div>
+            </div>
+
+            <!-- Crypto Deposit Fields -->
+            <div id="crypto-pay-fields" class="hidden">
+            <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1" data-i18n="pay_chain_label">Network</label>
+            <select id="pay-chain" onchange="fetchDepositAddress()" class="w-full mb-3 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none">
+                <option value="TRON" selected>Tron (TRC-20) — Низкая комиссия</option>
+                <option value="BSC">BNB Chain (BEP-20) — Быстро и выгодно</option>
+                <option value="SOL">Solana (SPL) — Мгновенно</option>
+                <option value="ETH">Ethereum (ERC-20)</option>
+            </select>
+
+            <!-- 5-minute reservation timer banner -->
+            <div id="slot-timer-banner" class="flex items-center justify-between bg-cyan-950/40 border border-cyan-500/30 rounded-xl px-3 py-2 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="slot-banner-text" class="text-[11px] font-medium text-slate-300">Слот зарезервирован</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] uppercase text-cyan-400 font-bold">Осталось:</span>
+                    <span id="slot-countdown" class="font-mono text-xs font-bold text-cyan-300 bg-slate-900 px-2 py-0.5 rounded-lg border border-cyan-500/40">05:00</span>
+                </div>
+            </div>
+
+            <p id="pay-pool-hint" class="text-[10px] text-cyan-500/80 mb-2" data-i18n="pay_pool_hint">Deposit address from pool — assigned on open</p>
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4 flex items-center gap-2">
+                <span id="pay-address" class="flex-1 break-all font-mono text-[11px] text-slate-300 leading-snug">—</span>
+                <button type="button" onclick="copyPayAddress()" class="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800" title="Copy">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+            </div>
+
+            <label class="block text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1" data-i18n="pay_hash_label">Tx hash / Signature</label>
+            <input type="text" id="pay-hash" class="w-full mb-4 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-3 text-sm text-white font-mono placeholder-slate-600 focus:border-cyan-500 focus:outline-none" placeholder="0x… / T… / Signature…" data-i18n-placeholder="pay_hash_placeholder">
+            </div>
+
+            <button type="button" id="pay-action-btn" onclick="handlePayment()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all">
+                Оплатить 500 ⭐️ Stars
+            </button>
+        </div>
+    </div>
+
+    <main class="flex-grow px-6 relative z-0">
+        
+        <!-- Search Section -->
+        <div id="search-view" class="animate-enter space-y-6" style="animation-delay: 0.2s">
+            <div class="text-center py-4">
+                <h2 class="text-3xl font-display font-bold text-gradient mb-2" data-i18n="check_wallet_title">Check Wallet Risk</h2>
+                <p class="text-xs text-slate-500 max-w-[200px] mx-auto" data-i18n="check_wallet_subtitle">Instant analysis across 6 major blockchains</p>
+            </div>
+
+            <div class="glass-card rounded-3xl p-3 border border-indigo-500/10 shadow-2xl shadow-indigo-500/5">
+                <!-- Chain Selector -->
+                <div class="flex flex-wrap gap-1 p-1 bg-black/40 rounded-xl mb-4 border border-white/5 justify-center">
+                    <button type="button" onclick="setChain('ETH')" class="chain-btn active flex-1 min-w-[50px] p-2 rounded-xl text-xs font-medium transition-all bg-slate-800 text-white shadow-sm flex items-center justify-center gap-1.5" data-chain="ETH">
+                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg" alt=""> ETH
+                    </button>
+                    <button type="button" onclick="setChain('BSC')" class="chain-btn flex-1 min-w-[50px] p-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5" data-chain="BSC">
+                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bnb.svg" alt=""> BSC
+                    </button>
+                    <button type="button" onclick="setChain('TON')" class="chain-btn flex-1 min-w-[50px] p-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5" data-chain="TON">
+                        <img src="/static/icons/ton.png" alt="TON" class="rounded-full object-contain"> TON
+                    </button>
+                    <button type="button" onclick="setChain('SOL')" class="chain-btn flex-1 min-w-[50px] p-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5" data-chain="SOL">
+                        <img src="/static/icons/sol.png" alt="SOL" class="rounded-full object-contain"> SOL
+                    </button>
+                    <button type="button" onclick="setChain('TRON')" class="chain-btn flex-1 min-w-[50px] p-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5" data-chain="TRON">
+                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/trx.svg" alt=""> TRON
+                    </button>
+                    <button type="button" onclick="setChain('BTC')" class="chain-btn flex-1 min-w-[50px] p-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-all flex items-center justify-center gap-1.5" data-chain="BTC">
+                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg" alt=""> BTC
+                    </button>
+                </div>
+
+                <!-- Input -->
+                <div class="relative px-2 pb-2">
+                    <input type="text" id="address" 
+                        class="w-full glass-input rounded-xl px-4 py-4 pr-12 text-sm font-mono text-white placeholder-slate-600 focus:outline-none"
+                        data-i18n-placeholder="paste_address_placeholder"
+                        placeholder="Paste wallet address..."
+                        oninput="autoDetectChain()"
+                        onpaste="setTimeout(autoDetectChain, 0)"
+                        onkeypress="if(event.key === 'Enter') checkWallet()">
+                    
+                    <button type="button" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('address').value=t; autoDetectChain();})" 
+                        class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-500 hover:text-indigo-400 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </button>
+                </div>
+
+                <button type="button" onclick="checkWallet()" class="w-full mt-2 neon-btn py-4 rounded-xl text-white font-bold text-sm shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-transform" data-i18n="analyze_btn">
+                    Analyze Wallet
+                </button>
+                
+                <div class="mt-4 flex justify-center">
+                    <button type="button" onclick="setDemoWallet()" class="px-4 py-2 rounded-lg bg-white/5 border border-indigo-500/30 text-[11px] text-indigo-300 font-medium hover:bg-indigo-500/10 hover:border-indigo-400 transition-all flex items-center gap-2" data-i18n="try_demo">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Try Demo Address (High Risk)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Scans Placeholder -->
+            <div class="mt-8">
+                <div class="flex justify-between items-center mb-4 px-1">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider" data-i18n="recent_scans">Recent Scans</h3>
+                    <button type="button" onclick="showAppView('history')" class="text-xs text-indigo-400 font-medium" data-i18n="view_all">View All</button>
+                </div>
+                <div class="space-y-3" id="recent-list">
+                    <!-- Dynamic content -->
+                    <div class="glass-card rounded-xl p-4 flex items-center justify-between opacity-50">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">?</div>
+                            <div>
+                                <div class="w-24 h-3 bg-slate-800 rounded animate-pulse mb-1"></div>
+                                <div class="w-16 h-2 bg-slate-800/50 rounded animate-pulse"></div>
+                            </div>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-slate-800 animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skeleton Shimmer Loader -->
+        <div id="loader" class="hidden space-y-4 animate-enter py-4">
+            <!-- Shimmering Score Card Mockup -->
+            <div class="glass-card rounded-[1.5rem] p-5 relative overflow-hidden border border-cyan-500/30 shimmer-bg">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-500 animate-pulse"></div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-full border-2 border-t-cyan-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+                    <div>
+                        <div class="text-xs font-bold text-cyan-300 uppercase tracking-wider" data-i18n="scanning">Scanning Blockchain...</div>
+                        <div class="text-[10px] text-slate-400 font-mono" data-i18n="calculating">Building risk signals…</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-5 pt-3 border-t border-slate-800/80">
+                    <div class="w-24 h-24 rounded-full bg-slate-900 border-4 border-slate-800/80 animate-pulse shrink-0 flex items-center justify-center">
+                        <div class="w-12 h-12 rounded-full bg-slate-800/50"></div>
+                    </div>
+                    <div class="flex-1 space-y-2.5">
+                        <div class="h-4 w-3/4 bg-slate-800/80 rounded-lg animate-pulse"></div>
+                        <div class="h-3 w-1/2 bg-slate-800/50 rounded-md animate-pulse"></div>
+                        <div class="h-3 w-5/6 bg-slate-800/40 rounded-md animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shimmering CEX & Signal Grid Mockup -->
+            <div class="glass-card rounded-2xl p-4 border border-slate-800/80 space-y-3 shimmer-bg">
+                <div class="flex justify-between items-center">
+                    <div class="h-3 w-28 bg-slate-800 rounded animate-pulse"></div>
+                    <div class="h-4 w-16 bg-slate-800/60 rounded-full animate-pulse"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <div class="h-12 bg-slate-900/90 rounded-xl border border-slate-800/60 p-2 space-y-1.5 animate-pulse">
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                        <div class="h-2.5 w-16 bg-slate-800/60 rounded"></div>
+                    </div>
+                    <div class="h-12 bg-slate-900/90 rounded-xl border border-slate-800/60 p-2 space-y-1.5 animate-pulse">
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                        <div class="h-2.5 w-16 bg-slate-800/60 rounded"></div>
+                    </div>
+                    <div class="h-12 bg-slate-900/90 rounded-xl border border-slate-800/60 p-2 space-y-1.5 animate-pulse">
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                        <div class="h-2.5 w-16 bg-slate-800/60 rounded"></div>
+                    </div>
+                    <div class="h-12 bg-slate-900/90 rounded-xl border border-slate-800/60 p-2 space-y-1.5 animate-pulse">
+                        <div class="h-2 w-12 bg-slate-800 rounded"></div>
+                        <div class="h-2.5 w-16 bg-slate-800/60 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result View -->
+        <div id="result-view" class="hidden space-y-5 animate-enter pb-6">
+
+            <!-- Merged score + verdict -->
+            <div class="glass-card rounded-[1.5rem] p-5 relative overflow-hidden border border-cyan-500/20">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-indigo-500"></div>
+                <div class="flex gap-4 items-start">
+                    <div class="shrink-0 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-widest mb-1" data-i18n="risk_score">Risk Score</div>
+                        <div class="relative w-32 h-32 mx-auto">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="64" cy="64" r="54" fill="none" stroke="#1e293b" stroke-width="9" />
+                                <circle id="score-circle" cx="64" cy="64" r="54" fill="none" stroke="#10b981" stroke-width="9" stroke-dasharray="339" stroke-dashoffset="339" stroke-linecap="round" class="transition-all duration-1000 ease-out" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="score-val" class="text-3xl font-display font-bold text-white brand-font">0</span>
+                                <span id="risk-text" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 uppercase mt-0.5">...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div id="verdict-badge" class="text-xl font-bold text-emerald-400">SAFE</div>
+                        <p id="verdict-summary" class="mt-1 text-xs text-slate-300 leading-relaxed">—</p>
+                        <div id="exposure-block" class="mt-2 hidden">
+                            <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1" data-i18n="exposure_title">Inbound risk exposure (90d)</div>
+                            <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                                <div id="exposure-bar" class="h-full bg-amber-500 transition-all" style="width:0%"></div>
+                            </div>
+                            <div id="exposure-label" class="text-[10px] text-slate-400 mt-1 font-mono">0%</div>
+                        </div>
+                        <div id="verdict-action" class="mt-2 text-[11px] text-cyan-200/90 bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-2.5">—</div>
+                        <div id="data-stamp" class="mt-2 text-[10px] text-slate-500"></div>
+                        <div class="grid grid-cols-2 gap-2 mt-3">
+                            <button type="button" onclick="shareCurrentResult()" class="px-2 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-[11px] text-white hover:border-cyan-400" data-i18n="btn_share" data-i18n-title="btn_share_hint" title="Share">Share proof</button>
+                            <button type="button" onclick="monitorCurrent()" class="px-2 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-[11px] text-cyan-300 hover:border-cyan-400" data-i18n="btn_monitor" data-i18n-title="btn_monitor_hint" title="Monitor">Monitor</button>
+                            <button type="button" onclick="downloadPDF()" class="px-2 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-[11px] text-white hover:border-cyan-400" data-i18n="btn_pdf" data-i18n-title="btn_pdf_hint" title="PDF">PDF</button>
+                            <button type="button" onclick="disputeCurrent()" class="px-2 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-[11px] text-slate-300 hover:border-amber-400" data-i18n="btn_dispute" data-i18n-title="btn_dispute_hint" title="Dispute">Dispute</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CEX profile -->
+            <div id="cex-safety-block" class="glass-card rounded-2xl p-4 border border-emerald-500/20">
+                <div class="flex items-center justify-between gap-2 mb-2 border-b border-slate-800/80 pb-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base bg-slate-900/90 border border-slate-700/80 shrink-0">🛡️</div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400" data-i18n="cex_title">CEX deposit profile</div>
+                            <div class="text-[10px] text-slate-500 truncate">Binance · Bybit · OKX · HTX · KuCoin</div>
+                        </div>
+                    </div>
+                    <div id="cex-badge-pill" class="px-2.5 py-1 rounded-xl font-bold text-[10px] inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                        <span id="cex-badge-text">—</span>
+                    </div>
+                </div>
+                <h4 id="cex-headline-text" class="text-sm font-bold text-white mb-1">—</h4>
+                <p id="cex-advice-text" class="text-xs text-slate-300 leading-relaxed mb-3 bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80">—</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800/80">
+                        <div class="text-[9px] uppercase font-bold text-slate-500 mb-0.5">OFAC / EU / UN</div>
+                        <div id="crit-sanctions" class="text-[11px] font-semibold text-emerald-400">—</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800/80">
+                        <div class="text-[9px] uppercase font-bold text-slate-500 mb-0.5">Tether USDT</div>
+                        <div id="crit-tether" class="text-[11px] font-semibold text-emerald-400">—</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800/80">
+                        <div class="text-[9px] uppercase font-bold text-slate-500 mb-0.5">Fake Asset Shield</div>
+                        <div id="crit-assets" class="text-[11px] font-semibold text-emerald-400">—</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800/80">
+                        <div class="text-[9px] uppercase font-bold text-slate-500 mb-0.5" data-i18n="cex_attribution">Flow attribution</div>
+                        <div id="crit-attribution" class="text-[11px] font-semibold text-cyan-400">—</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800/80">
+                        <div class="text-[9px] uppercase font-bold text-slate-500 mb-0.5" data-i18n="cex_mixer">Mixers / hacks</div>
+                        <div id="crit-mixer" class="text-[11px] font-semibold text-emerald-400">—</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800/80">
+                        <div class="text-[9px] uppercase font-bold text-slate-500 mb-0.5">Anti-dust</div>
+                        <div id="crit-dust" class="text-[11px] font-semibold text-cyan-400">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assets -->
+            <div class="glass-card rounded-2xl p-4">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3" data-i18n="asset_overview">Asset overview</h3>
+                <div class="space-y-2.5 text-sm">
+                    <div id="balance-total-row" class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-500 text-xs" data-i18n="balance_total">Total balance</span>
+                        <span id="balance-total-val" class="text-cyan-300 font-mono font-bold text-xs text-right">—</span>
+                    </div>
+                    <div id="usdt-row" class="hidden flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-500 text-xs">USDT</span>
+                        <span id="usdt-val" class="text-green-400 font-mono font-bold">0.00</span>
+                    </div>
+                    <div id="native-row" class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-500 text-xs" id="native-label" data-i18n="balance_native">Native</span>
+                        <span id="balance-val" class="text-white font-mono font-bold">0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-500 text-xs" data-i18n="tx_count">Transactions</span>
+                        <span id="tx-count" class="text-white font-mono">0</span>
+                    </div>
+                    <p id="tx-count-note" class="text-[10px] text-slate-500 font-mono"></p>
+                    <p id="balance-note" class="text-[10px] text-slate-500 font-mono hidden"></p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500 text-xs" data-i18n="sanctions">Sanctions</span>
+                        <span id="sanction-status" class="text-xs font-bold text-emerald-400">CLEAN</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent transactions -->
+            <div class="glass-card rounded-2xl p-3 overflow-hidden">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1" data-i18n="recent_txs">Recent Transactions</h3>
+                <div class="overflow-x-auto max-h-48 custom-scrollbar">
+                    <table class="w-full text-left text-[10px] min-w-[300px]">
+                        <thead class="sticky top-0 bg-slate-950 text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="p-2">Hash</th>
+                                <th class="p-2">From</th>
+                                <th class="p-2">To</th>
+                                <th class="p-2">Value</th>
+                                <th class="p-2" data-i18n="col_date">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="txTableBody" class="text-slate-300 divide-y divide-slate-800/50"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Graph -->
+            <div class="glass-card rounded-2xl p-3">
+                <div class="flex justify-between items-center mb-2 gap-2 flex-wrap">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" data-i18n="graph_title">Transaction flow</h3>
+                    <div class="flex items-center gap-2 flex-wrap text-[9px] text-slate-400">
+                        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.9)]"></span><span data-i18n="graph_you">Checked wallet</span></span>
+                        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]"></span><span data-i18n="graph_in">Incoming</span></span>
+                        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.7)]"></span><span data-i18n="graph_out">Outgoing</span></span>
+                        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(255,45,45,0.95)] ring-1 ring-red-400/70"></span><span class="text-red-300" data-i18n="graph_sanctioned">Sanctions</span></span>
+                    </div>
+                </div>
+                <p id="graph-meta" class="text-[10px] text-slate-500 mb-2 font-mono"></p>
+                <div id="graph-stage">
+                    <div id="cy"></div>
+                    <div class="graph-hud">
+                        <div class="flex justify-between">
+                            <span class="graph-chip" id="graph-chip-status">idle</span>
+                            <span class="graph-chip hidden" id="graph-chip-alert"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="graph-chip" id="graph-chip-step"></span>
+                            <button type="button" class="graph-skip hidden" id="graph-skip-btn" data-i18n="graph_skip">Skip</button>
+                        </div>
+                    </div>
+                    <div id="graph-node-panel">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div id="graph-node-role" class="text-[9px] uppercase tracking-widest text-slate-500 mb-0.5"></div>
+                                <div id="graph-node-addr" class="graph-node-addr"></div>
+                                <div id="graph-node-extra" class="text-[10px] text-slate-400 mt-0.5 truncate"></div>
+                            </div>
+                            <button type="button" id="graph-copy-btn" class="graph-copy-btn" data-i18n-title="graph_copy" title="Copy" aria-label="Copy" onclick="event.stopPropagation(); copyGraphNodeAddress()">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Factors -->
+            <div id="risk-factors" class="hidden space-y-3">
+                <h3 class="text-sm font-bold text-white px-1" data-i18n="detected_risks">Detected Risks</h3>
+                <div id="risk-list" class="space-y-2"></div>
+            </div>
+
+            <button type="button" onclick="resetView()" class="w-full glass-card p-3 rounded-2xl text-xs font-medium text-emerald-400 border border-emerald-500/20" data-i18n="new_check">New Check</button>
+
+        </div>
+
+        <!-- History View -->
+        <div id="history-view" class="hidden space-y-4 animate-enter pb-6">
+            <h2 class="text-xl font-display font-bold text-white" data-i18n="nav_history">History</h2>
+            <section class="glass-card rounded-2xl p-4 border border-slate-700/50">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3" data-i18n="profile_checks">Check history</h3>
+                <div class="overflow-x-auto max-h-64 custom-scrollbar">
+                    <table class="w-full text-left text-[11px] min-w-[280px]">
+                        <thead class="sticky top-0 bg-slate-950 text-slate-500 uppercase">
+                            <tr>
+                                <th class="p-2" data-i18n="col_date">Date</th>
+                                <th class="p-2" data-i18n="col_address">Address</th>
+                                <th class="p-2" data-i18n="col_risk">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-checks-body" class="text-slate-300 divide-y divide-slate-800/40"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="glass-card rounded-2xl p-4 border border-slate-700/50">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3" data-i18n="profile_history">Payments</h3>
+                <div class="overflow-x-auto max-h-48 custom-scrollbar">
+                    <table class="w-full text-left text-[11px] min-w-[240px]">
+                        <thead class="sticky top-0 bg-slate-950 text-slate-500 uppercase">
+                            <tr>
+                                <th class="p-2" data-i18n="col_date">Date</th>
+                                <th class="p-2" data-i18n="col_amount">Amount</th>
+                                <th class="p-2" data-i18n="col_status">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-payments-body" class="text-slate-300 divide-y divide-slate-800/40"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Profile View -->
+        <div id="profile-view" class="hidden space-y-4 animate-enter pb-6">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h2 class="text-xl font-display font-bold text-white" data-i18n="nav_profile">Profile</h2>
+                    <p id="profile-email" class="text-xs text-slate-400 truncate mt-0.5">—</p>
+                </div>
+                <div class="text-right shrink-0">
+                    <div class="text-[10px] text-slate-500" data-i18n="balance">Balance</div>
+                    <div id="profile-balance" class="text-2xl font-mono font-bold text-cyan-400">$0.00</div>
+                    <button type="button" onclick="openTopUp()" class="mt-1 text-[11px] px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-white">+ <span data-i18n="pay_title">Top Up</span></button>
+                </div>
+            </div>
+
+            <section class="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-4">
+                <div class="flex justify-between gap-3 mb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-white" data-i18n="profile_ref_title">Referral</h3>
+                        <p class="text-[10px] text-slate-400" data-i18n="profile_ref_link">Your link</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-500" data-i18n="profile_ref_invited">Invited</div>
+                        <div id="profile-ref-count" class="text-lg font-mono font-bold text-indigo-400">0</div>
+                        <div class="text-[10px] text-slate-500 mt-1" data-i18n="profile_ref_earned">Earned</div>
+                        <div id="profile-ref-earnings" class="text-sm font-mono text-cyan-300">$0.00</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <div id="profile-ref-code" class="flex-1 min-w-0 truncate bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 font-mono text-[10px] text-slate-300">—</div>
+                    <button type="button" onclick="copyRefLink()" class="shrink-0 px-3 py-2 rounded-lg bg-indigo-600 text-white text-[11px] font-bold" data-i18n="profile_ref_copy">Copy</button>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-sm font-bold text-white mb-2" data-i18n="monitors_title">Monitored wallets</h3>
+                <div id="monitors-list" class="glass-card rounded-xl border border-slate-800 p-3 text-xs text-slate-400 min-h-[52px]">—</div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 left-0 w-full glass-card border-t border-slate-800 pb-safe pt-2 px-6 flex justify-between items-center z-50">
+        <button type="button" id="nav-home" onclick="showAppView('home')" class="flex flex-col items-center gap-1 p-2 text-indigo-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-[10px] font-medium" data-i18n="nav_home">Home</span>
+        </button>
+        <button type="button" id="nav-history" onclick="showAppView('history')" class="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-medium" data-i18n="nav_history">History</span>
+        </button>
+        <button type="button" id="nav-profile" onclick="showAppView('profile')" class="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            <span class="text-[10px] font-medium" data-i18n="nav_profile">Profile</span>
+        </button>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        // Force header color
+        if(tg.setHeaderColor) tg.setHeaderColor('#030712');
+        if(tg.setBackgroundColor) tg.setBackgroundColor('#030712');
+
+        let currentChain = 'ETH';
+        let authToken = localStorage.getItem('access_token');
+        let userBalance = 0;
+        let currentLang = 'en';
+        let profileUser = null;
+        let currentAppView = 'home';
+
+        // Translations
+        const TRANSLATIONS = {
+            en: {
+                check_wallet_title: "Check Wallet Risk",
+                check_wallet_subtitle: "Instant analysis across major blockchains",
+                analyze_btn: "Analyze Wallet",
+                paste_address_placeholder: "Paste wallet address...",
+                recent_scans: "Recent Scans",
+                view_all: "View All",
+                scanning: "Scanning blockchain…",
+                risk_score: "Risk Score",
+                sanctions: "Sanctions",
+                balance: "Balance",
+                balance_total: "Total balance",
+                balance_native: "Native",
+                asset_overview: "Asset overview",
+                tx_count: "Transactions",
+                tx_count_sample: "Recent sample, not lifetime total",
+                detected_risks: "Detected Risks",
+                pdf_report: "PDF Report",
+                new_check: "New Check",
+                nav_home: "Home",
+                nav_history: "History",
+                nav_profile: "Profile",
+                clean: "CLEAN",
+                detected: "DETECTED",
+                try_demo: "Try demo address (high risk)",
+                cex_title: "CEX deposit profile",
+                cex_mixer: "Mixers / hacks",
+                graph_title: "Transaction flow",
+                graph_you: "Checked wallet",
+                graph_in: "Incoming",
+                graph_out: "Outgoing",
+                graph_sanctioned: "Sanctions",
+                graph_skip: "Skip",
+                graph_counterparties: "counterparties",
+                graph_flows: "flows",
+                graph_hover: "Tap a node to copy address",
+                graph_scanning: "scanning",
+                graph_mapped: "mapped",
+                graph_copy: "Copy",
+                graph_copied: "Copied",
+                graph_you_node: "Checked wallet",
+                graph_counterparty: "Counterparty",
+                btn_share: "Share proof",
+                btn_monitor: "Monitor",
+                btn_dispute: "Dispute",
+                no_tx_found: "No recent transactions",
+                pay_title: "Top Up Balance",
+                pay_sub: "Deposit USDT (TRC-20 preferred)",
+                pay_product_label: "Product",
+                pay_chain_label: "Network",
+                pay_pool_hint: "Deposit address from pool — assigned on open",
+                pay_hash_label: "Tx hash",
+                pay_hash_placeholder: "0x… / T…",
+                pay_verify_btn: "Verify Payment",
+                pay_copied: "Address copied",
+                pay_success: "Payment credited",
+                pay_need_auth: "Sign in via Telegram to top up",
+                pay_need_hash: "Paste the transaction hash",
+                exposure_title: "Inbound risk exposure (90d)",
+                recent_txs: "Recent transactions",
+                profile_checks: "Check history",
+                profile_history: "Payments",
+                profile_ref_title: "Referral",
+                profile_ref_link: "Your referral link",
+                profile_ref_invited: "Invited",
+                profile_ref_earned: "Earned",
+                profile_ref_copy: "Copy",
+                col_date: "Date",
+                col_address: "Address",
+                col_risk: "Risk",
+                col_amount: "Amount",
+                col_status: "Status",
+                no_history: "No history yet",
+                monitors_title: "Monitored wallets",
+                no_monitors: "No monitors yet — check a wallet and tap Monitor",
+                ref_copied: "Link copied",
+                btn_pdf: 'PDF',
+                btn_share_hint: 'Copy a public proof link (7-day TTL)',
+                btn_monitor_hint: 'Watch this address; Telegram alert on score change',
+                btn_pdf_hint: 'Download PDF dossier in your language',
+                btn_dispute_hint: 'Flag a wrong result for review',
+                pay_method_label: 'Payment method',
+                pay_method_hint: 'Crypto live now. SBP/card plug in later via same checkout API.',
+                pay_method_soon: 'This method is coming soon — use USDT for now.',
+                cex_attribution: 'Flow attribution',
+                sanctioned: 'SANCTIONED',
+                calculating: 'Building risk signals…',
+                safe: 'SAFE',
+},
+            ru: {
+                check_wallet_title: "Проверка кошелька",
+                check_wallet_subtitle: "Мгновенный анализ по основным сетям",
+                analyze_btn: "Проверить",
+                paste_address_placeholder: "Вставьте адрес кошелька…",
+                recent_scans: "Недавние проверки",
+                view_all: "Все",
+                scanning: "Сканирование блокчейна…",
+                risk_score: "Оценка риска",
+                sanctions: "Санкции",
+                balance: "Баланс",
+                balance_total: "Общий баланс",
+                balance_native: "Нативный",
+                asset_overview: "Активы",
+                tx_count: "Транзакции",
+                tx_count_sample: "Недавняя выборка, не за всё время",
+                detected_risks: "Найденные риски",
+                pdf_report: "PDF-отчёт",
+                new_check: "Новая проверка",
+                nav_home: "Главная",
+                nav_history: "История",
+                nav_profile: "Профиль",
+                clean: "ЧИСТО",
+                detected: "ОБНАРУЖЕНО",
+                try_demo: "Демо-адрес (высокий риск)",
+                cex_title: "Риск-профиль для биржи",
+                cex_mixer: "Миксеры / хаки",
+                graph_title: "Граф потоков",
+                graph_you: "Проверяемый кошелёк",
+                graph_in: "Входящие",
+                graph_out: "Исходящие",
+                graph_sanctioned: "Санкции",
+                graph_skip: "Пропустить",
+                graph_counterparties: "контрагентов",
+                graph_flows: "потоков",
+                graph_hover: "Нажмите узел, чтобы скопировать адрес",
+                graph_scanning: "сканирование",
+                graph_mapped: "готово",
+                graph_copy: "Копировать",
+                graph_copied: "Скопировано",
+                graph_you_node: "Проверяемый кошелёк",
+                graph_counterparty: "Контрагент",
+                btn_share: "Поделиться",
+                btn_monitor: "Мониторинг",
+                btn_dispute: "Оспорить",
+                no_tx_found: "Нет недавних транзакций",
+                pay_title: "Пополнить баланс",
+                pay_sub: "Депозит USDT (предпочтительно TRC-20)",
+                pay_product_label: "Продукт",
+                pay_chain_label: "Сеть",
+                pay_pool_hint: "Адрес из пула — назначается при открытии",
+                pay_hash_label: "Хеш транзакции",
+                pay_hash_placeholder: "0x… / T…",
+                pay_verify_btn: "Проверить платёж",
+                pay_copied: "Адрес скопирован",
+                pay_success: "Платёж зачислен",
+                pay_need_auth: "Войдите через Telegram, чтобы пополнить",
+                pay_need_hash: "Вставьте хеш транзакции",
+                exposure_title: "Входящий риск-exposure (90д)",
+                recent_txs: "Последние транзакции",
+                profile_checks: "История проверок",
+                profile_history: "Платежи",
+                profile_ref_title: "Рефералка",
+                profile_ref_link: "Ваша ссылка",
+                profile_ref_invited: "Приглашено",
+                profile_ref_earned: "Заработано",
+                profile_ref_copy: "Копировать",
+                col_date: "Дата",
+                col_address: "Адрес",
+                col_risk: "Риск",
+                col_amount: "Сумма",
+                col_status: "Статус",
+                no_history: "История пуста",
+                monitors_title: "Мониторинг",
+                no_monitors: "Пока пусто — проверьте кошелёк и нажмите Monitor",
+                ref_copied: "Ссылка скопирована",
+                btn_pdf: 'PDF',
+                btn_share_hint: 'Скопировать публичную ссылку-пруф (7 дней)',
+                btn_monitor_hint: 'Следить за адресом; алерт в Telegram при смене скора',
+                btn_pdf_hint: 'Скачать PDF-досье на вашем языке',
+                btn_dispute_hint: 'Сообщить об ошибке в результате',
+                pay_method_label: 'Способ оплаты',
+                pay_method_hint: 'Крипто уже работает. СБП/карта — позже через тот же API.',
+                pay_method_soon: 'Этот способ скоро — пока используйте USDT.',
+                cex_attribution: 'Атрибуция потоков',
+                sanctioned: 'САНКЦИИ',
+                calculating: 'Сборка сигналов риска…',
+                safe: 'БЕЗОПАСНО',
+},
+            es: {
+                check_wallet_title: "Comprobar riesgo de cartera",
+                check_wallet_subtitle: "Análisis instantáneo en las principales redes",
+                analyze_btn: "Analizar cartera",
+                paste_address_placeholder: "Pegue la dirección de la cartera…",
+                recent_scans: "Escaneos recientes",
+                view_all: "Ver todo",
+                scanning: "Escaneando la blockchain…",
+                risk_score: "Puntuación de riesgo",
+                sanctions: "Sanciones",
+                balance: "Saldo",
+                balance_total: "Saldo total",
+                balance_native: "Nativo",
+                asset_overview: "Resumen de activos",
+                tx_count: "Transacciones",
+                tx_count_sample: "Muestra reciente, no el total histórico",
+                detected_risks: "Riesgos detectados",
+                pdf_report: "Informe PDF",
+                new_check: "Nueva comprobación",
+                nav_home: "Inicio",
+                nav_history: "Historial",
+                nav_profile: "Perfil",
+                clean: "LIMPIO",
+                detected: "DETECTADO",
+                try_demo: "Probar dirección demo (alto riesgo)",
+                cex_title: "Perfil de depósito en CEX",
+                cex_mixer: "Mixers / hacks",
+                graph_title: "Flujo de transacciones",
+                graph_you: "Cartera comprobada",
+                graph_in: "Entrantes",
+                graph_out: "Salientes",
+                graph_sanctioned: "Sanciones",
+                graph_skip: "Omitir",
+                graph_counterparties: "contrapartes",
+                graph_flows: "flujos",
+                graph_hover: "Toque un nodo para copiar la dirección",
+                graph_scanning: "escaneando",
+                graph_mapped: "listo",
+                graph_copy: "Copiar",
+                graph_copied: "Copiado",
+                graph_you_node: "Cartera comprobada",
+                graph_counterparty: "Contraparte",
+                btn_share: "Compartir prueba",
+                btn_monitor: "Monitorear",
+                btn_dispute: "Disputar",
+                no_tx_found: "Sin transacciones recientes",
+                pay_title: "Recargar saldo",
+                pay_sub: "Deposite USDT (preferible TRC-20)",
+                pay_product_label: "Producto",
+                pay_chain_label: "Red",
+                pay_pool_hint: "Dirección del pool — se asigna al abrir",
+                pay_hash_label: "Hash de la tx",
+                pay_hash_placeholder: "0x… / T…",
+                pay_verify_btn: "Verificar pago",
+                pay_copied: "Dirección copiada",
+                pay_success: "Pago acreditado",
+                pay_need_auth: "Inicie sesión con Telegram para recargar",
+                pay_need_hash: "Pegue el hash de la transacción",
+                exposure_title: "Exposición de riesgo entrante (90d)",
+                recent_txs: "Transacciones recientes",
+                profile_checks: "Historial de comprobaciones",
+                profile_history: "Pagos",
+                profile_ref_title: "Referidos",
+                profile_ref_link: "Su enlace",
+                profile_ref_invited: "Invitados",
+                profile_ref_earned: "Ganado",
+                profile_ref_copy: "Copiar",
+                col_date: "Fecha",
+                col_address: "Dirección",
+                col_risk: "Riesgo",
+                col_amount: "Importe",
+                col_status: "Estado",
+                no_history: "Sin historial",
+                monitors_title: "Carteres vigiladas",
+                no_monitors: "Aún no hay monitores",
+                ref_copied: "Enlace copiado",
+                btn_pdf: 'PDF',
+                btn_share_hint: 'Copiar enlace de prueba público (TTL 7 días)',
+                btn_monitor_hint: 'Vigilar esta dirección; alerta en Telegram si cambia la puntuación',
+                btn_pdf_hint: 'Descargar dossier PDF en su idioma',
+                btn_dispute_hint: 'Marcar un resultado incorrecto para revisión',
+                pay_method_label: 'Método de pago',
+                pay_method_hint: 'Cripto ya disponible. SBP/tarjeta más adelante con la misma API.',
+                pay_method_soon: 'Este método llegará pronto — use USDT por ahora.',
+                cex_attribution: 'Atribución de flujo',
+                sanctioned: 'SANCIONADO',
+                calculating: 'Construyendo señales de riesgo…',
+                safe: 'SEGURO',
+},
+            ar: {
+                check_wallet_title: "فحص مخاطر المحفظة",
+                check_wallet_subtitle: "تحليل فوري عبر الشبكات الرئيسية",
+                analyze_btn: "تحليل المحفظة",
+                paste_address_placeholder: "الصق عنوان المحفظة…",
+                recent_scans: "الفحوصات الأخيرة",
+                view_all: "عرض الكل",
+                scanning: "جارٍ فحص البلوكتشين…",
+                risk_score: "درجة المخاطر",
+                sanctions: "العقوبات",
+                balance: "الرصيد",
+                balance_total: "إجمالي الرصيد",
+                balance_native: "العملة الأصلية",
+                asset_overview: "نظرة على الأصول",
+                tx_count: "المعاملات",
+                tx_count_sample: "عيّنة حديثة، وليست الإجمالي الكامل",
+                detected_risks: "المخاطر المكتشفة",
+                pdf_report: "تقرير PDF",
+                new_check: "فحص جديد",
+                nav_home: "الرئيسية",
+                nav_history: "السجل",
+                nav_profile: "الملف",
+                clean: "نظيف",
+                detected: "مُكتشف",
+                try_demo: "تجربة عنوان تجريبي (مخاطر عالية)",
+                cex_title: "ملف إيداع المنصة",
+                cex_mixer: "الخلاطات / الاختراقات",
+                graph_title: "تدفق المعاملات",
+                graph_you: "المحفظة المفحوصة",
+                graph_in: "واردة",
+                graph_out: "صادرة",
+                graph_sanctioned: "عقوبات",
+                graph_skip: "تخطّي",
+                graph_counterparties: "أطراف مقابلة",
+                graph_flows: "تدفقات",
+                graph_hover: "اضغط على العقدة لنسخ العنوان",
+                graph_scanning: "جارٍ الفحص",
+                graph_mapped: "تم",
+                graph_copy: "نسخ",
+                graph_copied: "تم النسخ",
+                graph_you_node: "المحفظة المفحوصة",
+                graph_counterparty: "طرف مقابل",
+                btn_share: "مشاركة الإثبات",
+                btn_monitor: "مراقبة",
+                btn_dispute: "اعتراض",
+                no_tx_found: "لا توجد معاملات حديثة",
+                pay_title: "شحن الرصيد",
+                pay_sub: "إيداع USDT (يُفضَّل TRC-20)",
+                pay_product_label: "المنتج",
+                pay_chain_label: "الشبكة",
+                pay_pool_hint: "عنوان من المجمع — يُعيَّن عند الفتح",
+                pay_hash_label: "هاش المعاملة",
+                pay_hash_placeholder: "0x… / T…",
+                pay_verify_btn: "تحقق من الدفع",
+                pay_copied: "تم نسخ العنوان",
+                pay_success: "تم إضافة الدفع",
+                pay_need_auth: "سجّل الدخول عبر تيليجرام للشحن",
+                pay_need_hash: "الصق هاش المعاملة",
+                exposure_title: "تعرّض المخاطر الواردة (90 يومًا)",
+                recent_txs: "المعاملات الأخيرة",
+                profile_checks: "سجل الفحوصات",
+                profile_history: "المدفوعات",
+                profile_ref_title: "الإحالة",
+                profile_ref_link: "رابطك",
+                profile_ref_invited: "المدعوون",
+                profile_ref_earned: "الأرباح",
+                profile_ref_copy: "نسخ",
+                col_date: "التاريخ",
+                col_address: "العنوان",
+                col_risk: "المخاطر",
+                col_amount: "المبلغ",
+                col_status: "الحالة",
+                no_history: "لا يوجد سجل بعد",
+                monitors_title: "المحافظ المراقبة",
+                no_monitors: "لا توجد مراقبة بعد",
+                ref_copied: "تم نسخ الرابط",
+                btn_pdf: 'PDF',
+                btn_share_hint: 'نسخ رابط إثبات عام (صالح 7 أيام)',
+                btn_monitor_hint: 'راقب هذا العنوان؛ تنبيه تيليجرام عند تغيّر الدرجة',
+                btn_pdf_hint: 'تنزيل ملف PDF بلغتك',
+                btn_dispute_hint: 'الإبلاغ عن نتيجة خاطئة للمراجعة',
+                pay_method_label: 'طريقة الدفع',
+                pay_method_hint: 'العملات المشفرة متاحة الآن. SBP/البطاقة لاحقًا عبر نفس الـ API.',
+                pay_method_soon: 'هذه الطريقة قريبًا — استخدم USDT الآن.',
+                cex_attribution: 'إسناد التدفق',
+                sanctioned: 'خاضع للعقوبات',
+                calculating: 'بناء إشارات المخاطر…',
+                safe: 'آمن',
+},
+            fr: {
+                check_wallet_title: "Vérifier le risque du portefeuille",
+                check_wallet_subtitle: "Analyse instantanée sur les principales blockchains",
+                analyze_btn: "Analyser le portefeuille",
+                paste_address_placeholder: "Collez l’adresse du portefeuille…",
+                recent_scans: "Analyses récentes",
+                view_all: "Tout voir",
+                scanning: "Analyse de la blockchain…",
+                risk_score: "Score de risque",
+                sanctions: "Sanctions",
+                balance: "Solde",
+                balance_total: "Solde total",
+                balance_native: "Natif",
+                asset_overview: "Aperçu des actifs",
+                tx_count: "Transactions",
+                tx_count_sample: "Échantillon récent, pas le total historique",
+                detected_risks: "Risques détectés",
+                pdf_report: "Rapport PDF",
+                new_check: "Nouvelle vérification",
+                nav_home: "Accueil",
+                nav_history: "Historique",
+                nav_profile: "Profil",
+                clean: "SAIN",
+                detected: "DÉTECTÉ",
+                try_demo: "Essayer une adresse démo (risque élevé)",
+                cex_title: "Profil de dépôt CEX",
+                cex_mixer: "Mixeurs / hacks",
+                graph_title: "Flux de transactions",
+                graph_you: "Portefeuille vérifié",
+                graph_in: "Entrants",
+                graph_out: "Sortants",
+                graph_sanctioned: "Sanctions",
+                graph_skip: "Passer",
+                graph_counterparties: "contreparties",
+                graph_flows: "flux",
+                graph_hover: "Touchez un nœud pour copier l’adresse",
+                graph_scanning: "analyse",
+                graph_mapped: "prêt",
+                graph_copy: "Copier",
+                graph_copied: "Copié",
+                graph_you_node: "Portefeuille vérifié",
+                graph_counterparty: "Contrepartie",
+                btn_share: "Partager la preuve",
+                btn_monitor: "Surveiller",
+                btn_dispute: "Contester",
+                no_tx_found: "Aucune transaction récente",
+                pay_title: "Recharger le solde",
+                pay_sub: "Déposez des USDT (TRC-20 recommandé)",
+                pay_product_label: "Produit",
+                pay_chain_label: "Réseau",
+                pay_pool_hint: "Adresse du pool — attribuée à l’ouverture",
+                pay_hash_label: "Hash de la tx",
+                pay_hash_placeholder: "0x… / T…",
+                pay_verify_btn: "Vérifier le paiement",
+                pay_copied: "Adresse copiée",
+                pay_success: "Paiement crédité",
+                pay_need_auth: "Connectez-vous via Telegram pour recharger",
+                pay_need_hash: "Collez le hash de la transaction",
+                exposure_title: "Exposition de risque entrante (90j)",
+                recent_txs: "Transactions récentes",
+                profile_checks: "Historique des vérifications",
+                profile_history: "Paiements",
+                profile_ref_title: "Parrainage",
+                profile_ref_link: "Votre lien",
+                profile_ref_invited: "Invités",
+                profile_ref_earned: "Gains",
+                profile_ref_copy: "Copier",
+                col_date: "Date",
+                col_address: "Adresse",
+                col_risk: "Risque",
+                col_amount: "Montant",
+                col_status: "Statut",
+                no_history: "Aucun historique",
+                monitors_title: "Portefeuilles surveillés",
+                no_monitors: "Aucun moniteur pour l’instant",
+                ref_copied: "Lien copié",
+                btn_pdf: 'PDF',
+                btn_share_hint: 'Copier un lien de preuve public (TTL 7 jours)',
+                btn_monitor_hint: 'Surveiller cette adresse ; alerte Telegram si le score change',
+                btn_pdf_hint: 'Télécharger le dossier PDF dans votre langue',
+                btn_dispute_hint: 'Signaler un résultat incorrect pour revue',
+                pay_method_label: 'Mode de paiement',
+                pay_method_hint: 'Crypto déjà disponible. SBP/carte plus tard via la même API.',
+                pay_method_soon: 'Ce mode arrive bientôt — utilisez USDT pour l’instant.',
+                cex_attribution: 'Attribution du flux',
+                sanctioned: 'SANCTIONNÉ',
+                calculating: 'Construction des signaux de risque…',
+                safe: 'SÛR',
+},
+        };
+
+        function setDemoWallet() {
+            document.getElementById('address').value = '0x53b6936513e738f44fb50d2b9476730c0ab3bfc1';
+            setChain('ETH');
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        let cachedI18nElements = null;
+        let cachedPlaceholderElements = null;
+
+        function setLanguage(lang) {
+            // Close menu immediately for better UX
+            const menu = document.getElementById('lang-menu');
+            if (menu) menu.classList.add('hidden');
+
+            currentLang = lang;
+            const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
+            
+            // Cache DOM elements to reduce query overhead
+            if (!cachedI18nElements) {
+                cachedI18nElements = document.querySelectorAll('[data-i18n]');
+                cachedPlaceholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+            }
+            
+            // Update Text
+            cachedI18nElements.forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if(t[key]) el.innerText = t[key];
+            });
+            
+            // Update Placeholders
+            cachedPlaceholderElements.forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if(t[key]) el.placeholder = t[key];
+            });
+
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (t[key]) el.title = t[key];
+            });
+
+            // Update Flag
+            const flags = { ru: '🇷🇺', en: '🇺🇸', es: '🇪🇸', ar: '🇸🇦', fr: '🇫🇷' };
+            const flagEl = document.getElementById('current-lang-flag');
+            if(flagEl) flagEl.innerText = flags[lang] || '🇺🇸';
+            
+            // Update Direction for Arabic
+            document.documentElement.lang = lang;
+            document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            
+            // Trigger Haptic Feedback
+            if(tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function toggleLangMenu() {
+            const menu = document.getElementById('lang-menu');
+            if(menu) menu.classList.toggle('hidden');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('lang-menu');
+            const clickedBtn = e.target.closest('button[onclick="toggleLangMenu()"]');
+            
+            if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !clickedBtn) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // Initialize Language
+        function initLang() {
+            const tgLangRaw = (tg.initDataUnsafe?.user?.language_code || '').toLowerCase();
+            const tgLang = tgLangRaw.split('-')[0];
+            if (tgLang && TRANSLATIONS[tgLang]) {
+                setLanguage(tgLang);
+            } else {
+                setLanguage('ru');
+            }
+        }
+        initLang();
+
+        function setChain(chain) {
+            currentChain = chain;
+            document.querySelectorAll('.chain-btn').forEach(btn => {
+                const on = btn.dataset.chain === chain;
+                btn.classList.toggle('bg-slate-800', on);
+                btn.classList.toggle('text-white', on);
+                btn.classList.toggle('shadow-sm', on);
+                btn.classList.toggle('text-slate-400', !on);
+                btn.classList.toggle('active', on);
+            });
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function autoDetectChain() {
+            const q = (document.getElementById('address').value || '').trim();
+            if (q.length < 8) return;
+
+            let detected = null;
+            if (/^T[1-9A-HJ-NP-za-km-z]{33}$/.test(q)) {
+                detected = 'TRON';
+            } else if (/^0x[0-9a-fA-F]{40}$/.test(q)) {
+                detected = (currentChain === 'BSC') ? 'BSC' : 'ETH';
+            } else if (/^(EQ|UQ|kQ|0Q)[0-9a-zA-Z_-]{46}$/.test(q)) {
+                detected = 'TON';
+            } else if (/^[1-9A-HJ-NP-za-km-z]{32,44}$/.test(q) && !q.startsWith('T') && !q.startsWith('1') && !q.startsWith('3')) {
+                detected = 'SOL';
+            } else if (/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(q)) {
+                detected = 'BTC';
+            }
+
+            if (detected) {
+                if (detected !== currentChain) {
+                    setChain(detected);
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }
+                return;
+            }
+
+            // Fallback: asynchronous query to backend /detect endpoint
+            fetch('/detect?q=' + encodeURIComponent(q))
+                .then(res => res.ok ? res.json() : null)
+                .then(d => {
+                    if (d && (d.kind === 'address' || d.kind === 'txid') && d.chain && d.chain !== currentChain) {
+                        setChain(d.chain);
+                        if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                    }
+                })
+                .catch(() => {});
+        }
+
+        let initPromise = null;
+        async function initApp() {
+            if (initPromise) return initPromise;
+            initPromise = (async () => {
+                try {
+                    const initData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp.initData : "test=1";
+                    const res = await fetch('/auth/telegram?init_data=' + encodeURIComponent(initData), { method: 'POST' });
+                    if(res.ok) {
+                        const data = await res.json();
+                        authToken = data.access_token;
+                        userBalance = data.balance;
+                        const balEl = document.getElementById('user-balance');
+                        if (balEl) balEl.innerText = `$${Number(userBalance).toFixed(2)}`;
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('access_token', authToken);
+                        await refreshProfileUser();
+                        await refreshRecentScans();
+                        return authToken;
+                    } else {
+                        const storedToken = localStorage.getItem('access_token') || localStorage.getItem('token');
+                        if(storedToken) {
+                            authToken = storedToken;
+                            await refreshProfileUser();
+                            await refreshRecentScans();
+                            return authToken;
+                        }
+                    }
+                } catch(e) { 
+                    console.error("Auth error:", e);
+                    const storedToken = localStorage.getItem('access_token') || localStorage.getItem('token');
+                    if(storedToken) authToken = storedToken;
+                    return authToken;
+                } finally {
+                    initPromise = null;
+                }
+            })();
+            return initPromise;
+        }
+        initApp();
+
+        function authHeaders() {
+            const token = authToken || localStorage.getItem('token') || localStorage.getItem('access_token');
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+
+        function hideAllMainViews() {
+            ['search-view', 'loader', 'result-view', 'history-view', 'profile-view'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+        }
+
+        function setNavActive(view) {
+            const map = { home: 'nav-home', history: 'nav-history', profile: 'nav-profile' };
+            Object.entries(map).forEach(([k, id]) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const on = k === view;
+                btn.classList.toggle('text-indigo-400', on);
+                btn.classList.toggle('text-slate-500', !on);
+            });
+        }
+
+        async function showAppView(view) {
+            currentAppView = view;
+            hideAllMainViews();
+            setNavActive(view === 'home' ? 'home' : view);
+            if (view === 'home') {
+                document.getElementById('search-view').classList.remove('hidden');
+                await refreshRecentScans();
+            } else if (view === 'history') {
+                document.getElementById('history-view').classList.remove('hidden');
+                await loadHistory();
+            } else if (view === 'profile') {
+                document.getElementById('profile-view').classList.remove('hidden');
+                await loadProfileView();
+            }
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        async function refreshProfileUser() {
+            try {
+                const res = await fetch('/auth/me', { headers: authHeaders() });
+                if (!res.ok) return;
+                profileUser = await res.json();
+                userBalance = Number(profileUser.balance || 0);
+                const balEl = document.getElementById('user-balance');
+                if (balEl) balEl.innerText = `$${userBalance.toFixed(2)}`;
+            } catch (e) {}
+        }
+
+        async function loadProfileView() {
+            await refreshProfileUser();
+            const u = profileUser || {};
+            const emailEl = document.getElementById('profile-email');
+            if (emailEl) emailEl.innerText = u.email || (tg.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'Telegram user');
+            const bal = document.getElementById('profile-balance');
+            if (bal) bal.innerText = `$${Number(u.balance || userBalance || 0).toFixed(2)}`;
+            document.getElementById('profile-ref-count').innerText = u.referral_count || 0;
+            document.getElementById('profile-ref-earnings').innerText = `$${Number(u.referral_earnings || 0).toFixed(2)}`;
+            const codeEl = document.getElementById('profile-ref-code');
+            if (codeEl) {
+                codeEl.innerText = u.referral_code
+                    ? `${location.origin}/?ref=${u.referral_code}`
+                    : '—';
+            }
+            await loadMonitors();
+        }
+
+        async function copyRefLink() {
+            const text = (document.getElementById('profile-ref-code')?.innerText || '').trim();
+            if (!text || text === '—') return;
+            try {
+                await navigator.clipboard.writeText(text);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                alertMsg(tKey('ref_copied'));
+            } catch (e) {
+                alertMsg(text);
+            }
+        }
+
+        async function loadHistory() {
+            const tbody = document.getElementById('history-checks-body');
+            const payBody = document.getElementById('history-payments-body');
+            if (!authToken && !localStorage.getItem('token') && !localStorage.getItem('access_token')) {
+                await initApp();
+            }
+            if (!authToken && !localStorage.getItem('token') && !localStorage.getItem('access_token')) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500">${tKey('pay_need_auth')}</td></tr>`;
+                if (payBody) payBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500">${tKey('pay_need_auth')}</td></tr>`;
+                return;
+            }
+            try {
+                const res = await fetch('/auth/history', { headers: authHeaders() });
+                if (!res.ok) throw new Error('history failed');
+                const data = await res.json();
+                renderHistoryTables(data);
+                renderRecentFromChecks(data.checks || []);
+            } catch (e) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500">${tKey('no_history')}</td></tr>`;
+            }
+        }
+
+        function renderHistoryTables(data) {
+            const payBody = document.getElementById('history-payments-body');
+            const checkBody = document.getElementById('history-checks-body');
+            if (payBody) {
+                payBody.innerHTML = '';
+                const payments = data.payments || [];
+                if (!payments.length) {
+                    payBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">${tKey('no_history')}</td></tr>`;
+                } else {
+                    payments.forEach(p => {
+                        const date = p.created_at ? new Date(p.created_at).toLocaleDateString() : '—';
+                        const statusClass = p.status === 'completed' ? 'text-green-400' : 'text-yellow-400';
+                        payBody.innerHTML += `<tr>
+                            <td class="p-2 text-slate-400">${date}</td>
+                            <td class="p-2 font-mono text-white">$${Number(p.amount || 0).toFixed(2)}</td>
+                            <td class="p-2 ${statusClass} font-bold text-[10px] uppercase">${p.status || '—'}</td>
+                        </tr>`;
+                    });
+                }
+            }
+            if (checkBody) {
+                checkBody.innerHTML = '';
+                const checks = data.checks || [];
+                if (!checks.length) {
+                    checkBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">${tKey('no_history')}</td></tr>`;
+                } else {
+                    checks.forEach(c => {
+                        const date = c.created_at ? new Date(c.created_at).toLocaleDateString() : '—';
+                        const score = Number(c.risk_score || 0);
+                        let riskColor = 'text-green-400';
+                        if (score > 75) riskColor = 'text-red-400';
+                        else if (score > 40) riskColor = 'text-yellow-400';
+                        const addr = (c.address || '').slice(0, 10) + '…';
+                        checkBody.innerHTML += `<tr class="cursor-pointer hover:bg-slate-800/40" onclick="rerunCheck('${(c.chain || 'ETH').replace(/'/g,'')}','${(c.address || '').replace(/'/g,'')}')">
+                            <td class="p-2 text-slate-400">${date}</td>
+                            <td class="p-2 font-mono text-cyan-400 text-[10px]"><span class="text-slate-500">[${c.chain || ''}]</span> ${addr}</td>
+                            <td class="p-2 ${riskColor} font-bold">${score}</td>
+                        </tr>`;
+                    });
+                }
+            }
+        }
+
+        function renderRecentFromChecks(checks) {
+            const list = document.getElementById('recent-list');
+            if (!list) return;
+            if (!checks.length) {
+                list.innerHTML = `<div class="glass-card rounded-xl p-4 text-xs text-slate-500 text-center">${tKey('no_history')}</div>`;
+                return;
+            }
+            list.innerHTML = checks.slice(0, 5).map(c => {
+                const score = Number(c.risk_score || 0);
+                let color = '#10b981';
+                if (score > 75) color = '#ef4444';
+                else if (score > 40) color = '#f59e0b';
+                const short = (c.address || '').slice(0, 8) + '…';
+                return `<button type="button" onclick="rerunCheck('${(c.chain || 'ETH').replace(/'/g,'')}','${(c.address || '').replace(/'/g,'')}')" class="w-full glass-card rounded-xl p-3 flex items-center justify-between hover:bg-white/5 transition text-left">
+                    <div class="min-w-0">
+                        <div class="text-xs font-mono text-slate-200 truncate">${short}</div>
+                        <div class="text-[10px] text-slate-500">${c.chain || ''} · ${c.created_at ? new Date(c.created_at).toLocaleDateString() : ''}</div>
+                    </div>
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold" style="background:${color}22;color:${color}">${score}</div>
+                </button>`;
+            }).join('');
+        }
+
+        async function refreshRecentScans() {
+            if (!authToken && !localStorage.getItem('token')) return;
+            try {
+                const res = await fetch('/auth/history', { headers: authHeaders() });
+                if (!res.ok) return;
+                const data = await res.json();
+                renderRecentFromChecks(data.checks || []);
+            } catch (e) {}
+        }
+
+        function rerunCheck(chain, address) {
+            showAppView('home');
+            setChain(chain);
+            document.getElementById('address').value = address;
+            checkWallet();
+        }
+
+        async function loadMonitors() {
+            const el = document.getElementById('monitors-list');
+            if (!el) return;
+            try {
+                const res = await fetch('/auth/monitors', { headers: authHeaders() });
+                if (!res.ok) throw new Error('fail');
+                const data = await res.json();
+                const list = data.monitors || [];
+                if (!list.length) {
+                    el.innerText = tKey('no_monitors');
+                    return;
+                }
+                el.innerHTML = list.map(m => {
+                    const name = m.label || ((m.address || '').slice(0, 8) + '…');
+                    return `<div class="flex items-center justify-between gap-2 py-2 border-b border-slate-800/50 last:border-0">
+                        <div class="min-w-0">
+                            <div class="text-slate-200 font-medium truncate">${name} <span class="text-slate-500 text-[10px]">${m.chain || ''}</span></div>
+                            <div class="text-[10px] text-slate-500 font-mono truncate">${m.address || ''}</div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-[11px] font-bold text-cyan-300">${m.last_level || '—'} ${m.last_score != null ? m.last_score : ''}</span>
+                            <button type="button" onclick="removeMonitor(${m.id})" class="text-slate-500 hover:text-red-400 text-xs px-1" aria-label="Remove">✕</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                el.innerText = tKey('no_monitors');
+            }
+        }
+
+        async function removeMonitor(id) {
+            try {
+                await fetch('/auth/monitors/' + id, { method: 'DELETE', headers: authHeaders() });
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                await loadMonitors();
+            } catch (e) {
+                alertMsg(e.message || 'Failed');
+            }
+        }
+
+        const PRODUCT_STARS = {
+            'single_check': 50,
+            'pack_10': 350,
+            'pack_20': 500,
+            'balance': 50
+        };
+
+        function updatePayButton() {
+            const method = document.getElementById('pay-method')?.value || 'telegram_stars';
+            const product = document.getElementById('pay-product')?.value || 'pack_20';
+            const btn = document.getElementById('pay-action-btn');
+            if (!btn) return;
+
+            if (method === 'telegram_stars') {
+                const stars = PRODUCT_STARS[product] || 50;
+                btn.innerText = `Оплатить ⭐️ ${stars} Stars`;
+                btn.className = "w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all cursor-pointer";
+            } else {
+                btn.innerText = tKey('pay_verify_btn') || "Проверить транзакцию";
+                btn.className = "w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-bold shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition-transform cursor-pointer";
+            }
+        }
+
+        function onPayMethodChange() {
+            const method = document.getElementById('pay-method')?.value || 'telegram_stars';
+            const cryptoFields = document.getElementById('crypto-pay-fields');
+            const starsFields = document.getElementById('stars-pay-fields');
+            const hint = document.getElementById('pay-method-hint');
+
+            const isStars = method === 'telegram_stars';
+            const isCrypto = method === 'crypto_usdt';
+
+            if (cryptoFields) cryptoFields.classList.toggle('hidden', !isCrypto);
+            if (starsFields) starsFields.classList.toggle('hidden', !isStars);
+
+            if (hint) {
+                if (isStars) {
+                    hint.innerText = "Оплата в 1 клик через встроенные Telegram Stars (Apple/Google Pay или баланс TG).";
+                    hint.className = "text-[10px] text-amber-400/90 mb-3";
+                } else if (isCrypto) {
+                    hint.innerText = tKey('pay_method_hint');
+                    hint.className = "text-[10px] text-slate-500 mb-3";
+                } else {
+                    hint.innerText = tKey('pay_method_soon');
+                    hint.className = "text-[10px] text-slate-500 mb-3";
+                }
+            }
+
+            updatePayButton();
+            if (isCrypto) fetchDepositAddress();
+        }
+
+        function onPayProductChange() {
+            updatePayButton();
+            const method = document.getElementById('pay-method')?.value || 'telegram_stars';
+            if (method === 'crypto_usdt') {
+                fetchDepositAddress();
+            }
+        }
+
+        function tKey(key, fallback) {
+            const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            return t[key] || fallback || key;
+        }
+
+        function alertMsg(msg) {
+            if (tg.showAlert) tg.showAlert(msg);
+            else alert(msg);
+        }
+
+        async function openTopUp() {
+            let token = authToken || localStorage.getItem('token') || localStorage.getItem('access_token');
+            if (!token) {
+                await initApp();
+                token = authToken || localStorage.getItem('token') || localStorage.getItem('access_token');
+            }
+            if (!token) {
+                alertMsg(tKey('pay_need_auth'));
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+            const modal = document.getElementById('pay-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            onPayMethodChange();
+        }
+
+        let slotTimerInterval = null;
+        function startSlotTimer(seconds, slotNum) {
+            if (slotTimerInterval) clearInterval(slotTimerInterval);
+            let remaining = seconds || 300;
+            const bannerText = document.getElementById('slot-banner-text');
+            const countdownEl = document.getElementById('slot-countdown');
+            if (bannerText) {
+                bannerText.innerText = slotNum ? `Слот #${slotNum} зарезервирован` : 'Слот зарезервирован';
+            }
+            const updateDisplay = () => {
+                if (!countdownEl) return;
+                const m = Math.floor(remaining / 60);
+                const s = remaining % 60;
+                countdownEl.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                if (remaining <= 60) {
+                    countdownEl.classList.remove('text-cyan-300', 'border-cyan-500/40');
+                    countdownEl.classList.add('text-red-400', 'border-red-500/60');
+                } else {
+                    countdownEl.classList.remove('text-red-400', 'border-red-500/60');
+                    countdownEl.classList.add('text-cyan-300', 'border-cyan-500/40');
+                }
+            };
+            updateDisplay();
+            slotTimerInterval = setInterval(() => {
+                remaining -= 1;
+                if (remaining <= 0) {
+                    clearInterval(slotTimerInterval);
+                    if (countdownEl) countdownEl.innerText = '00:00';
+                    if (bannerText) bannerText.innerText = 'Бронь истекла';
+                    const addrEl = document.getElementById('pay-address');
+                    if (addrEl) addrEl.innerText = 'Бронь слота истекла (обновите)';
+                } else {
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        function closeTopUp() {
+            if (slotTimerInterval) clearInterval(slotTimerInterval);
+            const modal = document.getElementById('pay-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function fetchDepositAddress() {
+            const token = authToken || localStorage.getItem('token') || localStorage.getItem('access_token');
+            const chainEl = document.getElementById('pay-chain');
+            const productEl = document.getElementById('pay-product');
+            const addrEl = document.getElementById('pay-address');
+            const hint = document.getElementById('pay-pool-hint');
+            if (!token || !chainEl || !addrEl) return;
+            const chain = chainEl.value;
+            const product = productEl ? productEl.value : 'pack_20';
+            const method = document.getElementById('pay-method')?.value || 'crypto_usdt';
+            addrEl.innerText = '…';
+            try {
+                const res = await fetch('/payments/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ product, method, chain })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Could not assign deposit address');
+                const inst = data.instructions || {};
+                addrEl.innerText = inst.address || '—';
+                if (hint) {
+                    const slot = inst.pool_slot ? ` · slot ${inst.pool_slot}` : '';
+                    hint.innerText = tKey('pay_pool_hint') + slot;
+                }
+                startSlotTimer(inst.expires_in || 300, inst.pool_slot);
+            } catch (e) {
+                addrEl.innerText = '—';
+                if (hint) hint.innerText = e.message || 'Pool unavailable';
+            }
+        }
+
+        async function copyPayAddress() {
+            const addr = (document.getElementById('pay-address')?.innerText || '').trim();
+            if (!addr || addr === '—' || addr === '…') return;
+            try {
+                await navigator.clipboard.writeText(addr);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                alertMsg(tKey('pay_copied'));
+            } catch (e) {
+                alertMsg(addr);
+            }
+        }
+
+        async function handlePayment() {
+            const token = authToken || localStorage.getItem('token') || localStorage.getItem('access_token');
+            if (!token) {
+                alertMsg(tKey('pay_need_auth'));
+                return;
+            }
+            const method = document.getElementById('pay-method')?.value || 'telegram_stars';
+            const product = document.getElementById('pay-product')?.value || 'pack_20';
+
+            // ── Обработка оплаты через Telegram Stars ──
+            if (method === 'telegram_stars') {
+                const btn = document.getElementById('pay-action-btn');
+                if (btn) { btn.disabled = true; btn.innerText = 'Создание инвойса…'; }
+                try {
+                    const res = await fetch('/payments/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ product, method: 'telegram_stars' })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || data.message || 'Ошибка создания инвойса Stars');
+                    const invoiceLink = data.instructions?.invoice_link;
+                    if (!invoiceLink) throw new Error(data.message || 'Ссылка на инвойс не получена');
+
+                    if (window.Telegram?.WebApp?.openInvoice) {
+                        Telegram.WebApp.openInvoice(invoiceLink, async (status) => {
+                            if (status === 'paid') {
+                                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                                alertMsg('🎉 Оплата Telegram Stars успешно выполнена!');
+                                closeTopUp();
+                                await refreshProfileUser();
+                                refreshRecentScans();
+                            } else if (status === 'cancelled') {
+                                alertMsg('Оплата отменена.');
+                            } else if (status === 'failed') {
+                                alertMsg('Ошибка при проведении платежа Stars.');
+                            }
+                        });
+                    } else {
+                        // Вне Telegram (браузер): открываем инвойс в клиенте Telegram
+                        window.open(invoiceLink, '_blank');
+                        alertMsg('Инвойс открыт в Telegram. После завершения оплаты баланс обновится.');
+                    }
+                } catch (e) {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                    alertMsg(e.message || 'Ошибка Telegram Stars');
+                } finally {
+                    if (btn) { btn.disabled = false; updatePayButton(); }
+                }
+                return;
+            }
+
+            // ── Обработка оплаты через USDT крипту (ручной ввод tx_hash) ──
+            const chain = document.getElementById('pay-chain').value;
+            const txHashInput = document.getElementById('pay-hash');
+            const txHash = (txHashInput.value || '').trim();
+            if (!txHash) {
+                alertMsg(tKey('pay_need_hash'));
+                return;
+            }
+            try {
+                const res = await fetch('/payments/confirm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ method: 'crypto_usdt', product, chain, tx_hash: txHash })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : (data.detail?.[0]?.msg || 'Payment failed'));
+                userBalance = Number(data.new_balance || 0);
+                const balEl = document.getElementById('user-balance');
+                if (balEl) balEl.innerText = `$${userBalance.toFixed(2)}`;
+                const pBal = document.getElementById('profile-balance');
+                if (pBal) pBal.innerText = `$${userBalance.toFixed(2)}`;
+                if (profileUser) profileUser.balance = userBalance;
+                txHashInput.value = '';
+                closeTopUp();
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                alertMsg(`${tKey('pay_success')}: $${userBalance.toFixed(2)}`);
+                refreshRecentScans();
+            } catch (e) {
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                alertMsg(e.message || 'Payment failed');
+            }
+        }
+
+        // Close top-up on backdrop click
+        document.getElementById('pay-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'pay-modal') closeTopUp();
+        });
+
+        async function checkWallet() {
+            const address = document.getElementById('address').value.trim();
+            if(!address) {
+                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                if(tg.showAlert) tg.showAlert("Please enter a wallet address");
+                else alert("Please enter a wallet address");
+                return;
+            }
+
+            try {
+                const det = await fetch('/detect?q=' + encodeURIComponent(address));
+                if (det.ok) {
+                    const d = await det.json();
+                    if (d.kind === 'address' && d.chain) setChain(d.chain);
+                }
+            } catch(e) {}
+
+            if (!authToken) await initApp();
+
+            hideAllMainViews();
+            document.getElementById('loader').classList.remove('hidden');
+            setNavActive('home');
+            currentAppView = 'home';
+
+            const t = TRANSLATIONS[currentLang];
+            if(tg.MainButton) {
+                tg.MainButton.text = t.scanning.toUpperCase();
+                tg.MainButton.showProgress();
+                tg.MainButton.show();
+            }
+
+            try {
+                let res;
+                let usedTrial = false;
+                const headers = authHeaders();
+                if (authToken && userBalance >= 1) {
+                    res = await fetch(`/check?address=${encodeURIComponent(address)}&chain=${currentChain}`, {
+                        headers: headers
+                    });
+                } else {
+                    res = await fetch(`/check-free?address=${encodeURIComponent(address)}&chain=${currentChain}`, {
+                        headers: headers
+                    });
+                    usedTrial = true;
+                    if (res.status === 429 && authToken) {
+                        res = await fetch(`/check?address=${encodeURIComponent(address)}&chain=${currentChain}`, {
+                            headers: headers
+                        });
+                        usedTrial = false;
+                    }
+                }
+
+                if(res.status === 402 || res.status === 429) {
+                    const msg = res.status === 402
+                        ? "Insufficient balance. Please top up."
+                        : "Trial limit reached for today. Top up to continue.";
+                    throw Object.assign(new Error(msg), { openTopUp: true });
+                }
+                if(res.status === 401) throw new Error("Session expired. Please restart.");
+                if(!res.ok) {
+                    const text = await res.text();
+                    let msg = "Analysis failed";
+                    try { msg = JSON.parse(text).detail || msg; } catch(e) { msg += ": " + text.substring(0, 50); }
+                    throw new Error(msg);
+                }
+
+                const data = await res.json();
+                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                renderResult(data);
+                refreshRecentScans();
+                if (!usedTrial && data.balance !== undefined) {
+                    userBalance = data.balance;
+                    const balEl = document.getElementById('user-balance');
+                    if(balEl) balEl.innerText = `$${Number(userBalance).toFixed(2)}`;
+                }
+            } catch(e) {
+                console.error(e);
+                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                if(tg.showAlert) tg.showAlert(e.message); else alert(e.message);
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('search-view').classList.remove('hidden');
+                if (e && e.openTopUp) setTimeout(() => openTopUp(), 350);
+            } finally {
+                if(tg.MainButton) tg.MainButton.hide();
+            }
+        }
+
+        function renderResult(data) {
+            hideAllMainViews();
+            document.getElementById('result-view').classList.remove('hidden');
+            setNavActive('home');
+            currentAppView = 'home';
+            window.lastCheckData = data;
+            const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            const score = Number(data.risk_score || 0);
+            const level = (data.risk_level || 'SAFE').toUpperCase();
+            const levelColors = { SAFE:'#10b981', CAUTION:'#eab308', WARNING:'#f59e0b', CRITICAL:'#ef4444' };
+            const color = levelColors[level] || '#10b981';
+            const circ = 339;
+
+            document.getElementById('score-val').innerText = score;
+            const circle = document.getElementById('score-circle');
+            setTimeout(() => {
+                circle.style.strokeDasharray = String(circ);
+                circle.style.strokeDashoffset = circ - (circ * score) / 100;
+                circle.style.stroke = color;
+            }, 50);
+
+            const badge = document.getElementById('risk-text');
+            badge.innerText = level;
+            badge.style.color = color;
+            badge.style.backgroundColor = color + '20';
+
+            const vBadge = document.getElementById('verdict-badge');
+            if (vBadge) { vBadge.innerText = level; vBadge.style.color = color; }
+
+            const verdict = data.verdict || {};
+            document.getElementById('verdict-summary').innerText = (verdict.why || []).slice(0, 3).join(' · ') || (data.disclaimer || '—');
+            document.getElementById('verdict-action').innerText = verdict.what_to_do || '—';
+
+            const meta = data.scoring_meta || {};
+            const exp = Number(meta.exposure_pct_in_90d || 0);
+            const expBlock = document.getElementById('exposure-block');
+            if (expBlock) {
+                if (exp > 0 || (meta.dust_filtered || 0) > 0) {
+                    expBlock.classList.remove('hidden');
+                    const bar = document.getElementById('exposure-bar');
+                    const lab = document.getElementById('exposure-label');
+                    if (bar) bar.style.width = Math.min(100, exp) + '%';
+                    if (lab) lab.innerText = `${exp}%` + (meta.dust_filtered ? ` · dust ${meta.dust_filtered}` : '');
+                } else {
+                    expBlock.classList.add('hidden');
+                }
+            }
+
+            const versions = data.list_versions || {};
+            const stamp = document.getElementById('data-stamp');
+            if (stamp) {
+                stamp.innerText = Object.keys(versions).length
+                    ? ('Data: ' + Object.entries(versions).map(([k,v]) => `${k} ${v}`).join(' · '))
+                    : '';
+            }
+
+            // CEX
+            const cex = verdict.cex_profile || {};
+            const cexBadge = document.getElementById('cex-badge-text');
+            const cexPill = document.getElementById('cex-badge-pill');
+            if (cexBadge) {
+                cexBadge.innerText = cex.badge || level;
+                cexBadge.style.color = cex.color || color;
+            }
+            if (cexPill) {
+                cexPill.style.color = cex.color || color;
+                cexPill.style.borderColor = (cex.color || color) + '40';
+                cexPill.style.backgroundColor = (cex.color || color) + '18';
+            }
+            const cexHead = document.getElementById('cex-headline-text');
+            if (cexHead) { cexHead.innerText = cex.headline || ''; cexHead.style.color = cex.color || color; }
+            const cexAdv = document.getElementById('cex-advice-text');
+            if (cexAdv) cexAdv.innerText = verdict.what_to_do || '';
+            ['crit-sanctions','crit-tether','crit-assets','crit-attribution','crit-mixer','crit-dust'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.innerText = '—'; el.className = 'text-[11px] font-semibold text-slate-400'; }
+            });
+            (cex.criteria || []).forEach(c => {
+                let el = null;
+                if (c.name.includes('Санкцион') || c.name.includes('OFAC')) el = document.getElementById('crit-sanctions');
+                else if (c.name.includes('Tether')) el = document.getElementById('crit-tether');
+                else if (c.name.includes('Валидность') || c.name.includes('Fake')) el = document.getElementById('crit-assets');
+                else if (c.name.includes('атрибуци') || c.name.includes('Прозрачность')) el = document.getElementById('crit-attribution');
+                else if (c.name.includes('миксер') || c.name.includes('Mixer') || c.name.includes('hack')) el = document.getElementById('crit-mixer');
+                else if (c.name.includes('пыл') || c.name.includes('Dust')) el = document.getElementById('crit-dust');
+                if (el) {
+                    el.innerText = (c.passed ? '✓ ' : '✕ ') + c.note;
+                    el.className = `text-[11px] font-semibold ${c.passed ? 'text-emerald-400' : 'text-red-400'}`;
+                }
+            });
+
+            // Assets
+            const cd = data.chain_data || {};
+            const chainType = (data.chain || cd.type || currentChain || '').toUpperCase();
+            const nativeSym = cd.balance_native_symbol
+                || (chainType === 'TRON' ? 'TRX' : chainType === 'BTC' ? 'BTC' : chainType === 'BSC' ? 'BNB' : chainType === 'TON' ? 'TON' : chainType === 'SOL' ? 'SOL' : chainType === 'ETH' || chainType === 'EVM' ? 'ETH' : 'Coin');
+            const nativeBal = Number(cd.balance || 0);
+            const usdtBal = (cd.balance_usdt !== undefined && cd.balance_usdt !== null) ? Number(cd.balance_usdt) : null;
+            const fmtN = (n, d) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+            const totalRow = document.getElementById('balance-total-row');
+            const usdtRow = document.getElementById('usdt-row');
+            const nativeLabel = document.getElementById('native-label');
+
+            if (chainType === 'BTC') {
+                if (totalRow) totalRow.classList.add('hidden');
+                if (usdtRow) usdtRow.classList.add('hidden');
+                if (nativeLabel) nativeLabel.innerText = t.balance || 'Balance';
+                document.getElementById('balance-val').innerText = cd.balance_display || `${fmtN(nativeBal, 8)} BTC`;
+            } else {
+                if (totalRow) totalRow.classList.remove('hidden');
+                if (nativeLabel) nativeLabel.innerText = nativeSym;
+                document.getElementById('balance-val').innerText = cd.balance_display || `${fmtN(nativeBal, 4)} ${nativeSym}`;
+                if (usdtBal !== null) {
+                    usdtRow.classList.remove('hidden');
+                    document.getElementById('usdt-val').innerText = fmtN(usdtBal, 2);
+                    const parts = [];
+                    if (usdtBal > 0) parts.push(`${fmtN(usdtBal, 2)} USDT`);
+                    if (nativeBal > 0) parts.push(`${fmtN(nativeBal, nativeSym === 'TRX' ? 2 : 4)} ${nativeSym}`);
+                    document.getElementById('balance-total-val').innerText = parts.length ? parts.join(' + ') : `0 USDT + 0 ${nativeSym}`;
+                } else {
+                    usdtRow.classList.add('hidden');
+                    document.getElementById('balance-total-val').innerText = cd.balance_display || `${fmtN(nativeBal, 4)} ${nativeSym}`;
+                }
+            }
+            document.getElementById('tx-count').innerText = cd.tx_count || '0';
+            const txNote = document.getElementById('tx-count-note');
+            if (txNote) txNote.innerText = cd.tx_count_note || (cd.tx_count ? (t.tx_count_sample || '') : '');
+
+            const balNote = document.getElementById('balance-note');
+            if (balNote) {
+                const bits = [];
+                if (cd.trc10_assets) bits.push(`${cd.trc10_assets} TRC-10`);
+                if (cd.other_trc20_contracts) bits.push(`${cd.other_trc20_contracts} non-USDT TRC-20`);
+                if (bits.length) {
+                    const zeroMoney = (Number(cd.native_balance) || 0) === 0 && !(Number(cd.usdt_balance) > 0);
+                    balNote.textContent = zeroMoney
+                        ? `${bits.join(' · ')} — spam/airdrop tokens only (not counted as balance)`
+                        : bits.join(' · ');
+                    balNote.classList.remove('hidden');
+                } else {
+                    balNote.textContent = '';
+                    balNote.classList.add('hidden');
+                }
+            }
+
+            const tbody = document.getElementById('txTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                const txs = cd.tx_list || [];
+                if (!txs.length) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500">${t.no_tx_found || '—'}</td></tr>`;
+                } else {
+                    txs.forEach(tx => {
+                        const hash = ((tx.hash || '') + '').slice(0, 10) + '…';
+                        const from = ((tx.from || '') + '').slice(0, 8) + '…';
+                        const to = ((tx.to || '') + '').slice(0, 8) + '…';
+                        const date = tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleDateString() : '—';
+                        const href = tx.explorer_url ? `href="${tx.explorer_url}" target="_blank" rel="noopener"` : '';
+                        tbody.innerHTML += `<tr class="border-b border-slate-800/40">
+                            <td class="p-2 font-mono text-cyan-400"><a ${href} class="hover:underline">${hash}</a></td>
+                            <td class="p-2 font-mono">${from}</td>
+                            <td class="p-2 font-mono">${to}</td>
+                            <td class="p-2 font-bold whitespace-nowrap">${tx.value || '—'}</td>
+                            <td class="p-2 text-slate-500 whitespace-nowrap">${date}</td>
+                        </tr>`;
+                    });
+                }
+            }
+
+            const isSanctioned = data.sanctions && data.sanctions.is_sanctioned;
+            const sEl = document.getElementById('sanction-status');
+            sEl.innerText = isSanctioned ? (t.sanctioned || t.detected) : t.clean;
+            sEl.className = isSanctioned ? 'text-xs font-bold text-red-400' : 'text-xs font-bold text-emerald-400';
+
+            // Factors
+            const rList = document.getElementById('risk-list');
+            rList.innerHTML = '';
+            if (data.risk_factors && data.risk_factors.length > 0) {
+                document.getElementById('risk-factors').classList.remove('hidden');
+                data.risk_factors.forEach(f => {
+                    if (typeof f === 'string') {
+                        rList.innerHTML += `<div class="glass-card p-3 rounded-xl border border-red-500/20 bg-red-500/5"><p class="text-sm text-slate-200 font-medium">${f}</p></div>`;
+                        return;
+                    }
+                    const level = (f.level || 'HIGH').toUpperCase();
+                    let borderColor = 'border-red-500/20', bgColor = 'bg-red-500/5', textColor = 'text-red-400';
+                    if (level === 'MEDIUM') { borderColor = 'border-orange-500/20'; bgColor = 'bg-orange-500/5'; textColor = 'text-orange-400'; }
+                    else if (level === 'LOW' || level === 'INFO') { borderColor = 'border-blue-500/20'; bgColor = 'bg-blue-500/5'; textColor = 'text-blue-400'; }
+                    const srcLine = [f.source, f.source_date, f.confidence ? (f.confidence + ' confidence') : null, f.signal_type].filter(Boolean).join(' · ');
+                    rList.innerHTML += `<div class="flex flex-col ${bgColor} p-3 rounded-xl border ${borderColor}">
+                        <div class="flex items-center mb-1.5 flex-wrap gap-1.5">
+                            <span class="font-bold ${textColor} text-[10px] px-1.5 py-0.5 rounded bg-black/20 border border-white/5">[${level}]</span>
+                            <span class="text-slate-200 font-semibold text-sm">${f.desc || ''}</span>
+                        </div>
+                        ${f.details ? `<div class="text-xs text-slate-400 mb-0.5">${f.details}</div>` : ''}
+                        ${f.implication ? `<div class="text-xs text-slate-500">${f.implication}</div>` : ''}
+                        ${srcLine ? `<div class="text-[10px] text-slate-500 mt-1.5 uppercase tracking-wide">${srcLine}</div>` : ''}
+                    </div>`;
+                });
+            } else {
+                document.getElementById('risk-factors').classList.add('hidden');
+            }
+
+            renderGraph(data.graph_data);
+        }
+
+        let _graphSelectedAddr = '';
+
+        function hideGraphNodePanel() {
+            const panel = document.getElementById('graph-node-panel');
+            if (panel) {
+                panel.classList.remove('is-open', 'is-sanctioned', 'is-floating');
+                panel.style.left = '';
+                panel.style.top = '';
+            }
+            _graphSelectedAddr = '';
+        }
+
+        function showGraphNodeDetail(d, renderedPos) {
+            if (!d) return;
+            const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            const addr = d.full_label || d.id || '';
+            if (!addr || addr === '_empty') return;
+            _graphSelectedAddr = addr;
+            const panel = document.getElementById('graph-node-panel');
+            const stage = document.getElementById('graph-stage');
+            const roleEl = document.getElementById('graph-node-role');
+            const addrEl = document.getElementById('graph-node-addr');
+            const extraEl = document.getElementById('graph-node-extra');
+            const copyBtn = document.getElementById('graph-copy-btn');
+            if (!panel || !addrEl) return;
+            if (roleEl) roleEl.textContent = (d.is_you ? (t.graph_you_node || 'Target') : (t.graph_counterparty || 'Counterparty')) + (d.type ? ` · ${d.type}` : '');
+            addrEl.textContent = addr;
+            addrEl.title = addr;
+            const bits = [];
+            if (d.entity) bits.push(d.entity);
+            if (d.is_sanctioned) bits.push('SANCTIONED');
+            if (extraEl) extraEl.textContent = bits.join(' · ');
+            panel.classList.toggle('is-sanctioned', !!d.is_sanctioned);
+            panel.classList.add('is-open');
+            if (copyBtn) {
+                copyBtn.classList.remove('copied');
+                copyBtn.title = t.graph_copy || 'Copy';
+                copyBtn.setAttribute('aria-label', t.graph_copy || 'Copy');
+            }
+
+            if (renderedPos && stage) {
+                panel.classList.add('is-floating');
+                requestAnimationFrame(() => {
+                    const pw = panel.offsetWidth || 260;
+                    const ph = panel.offsetHeight || 64;
+                    let left = renderedPos.x - pw / 2;
+                    let top = renderedPos.y + 16;
+                    left = Math.max(8, Math.min(left, stage.clientWidth - pw - 8));
+                    if (top + ph > stage.clientHeight - 8) top = renderedPos.y - ph - 12;
+                    top = Math.max(8, Math.min(top, stage.clientHeight - ph - 8));
+                    panel.style.left = left + 'px';
+                    panel.style.top = top + 'px';
+                });
+            } else {
+                panel.classList.remove('is-floating');
+                panel.style.left = '';
+                panel.style.top = '';
+            }
+        }
+
+        function copyGraphNodeAddress() {
+            if (!_graphSelectedAddr) return;
+            const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            navigator.clipboard.writeText(_graphSelectedAddr).catch(() => {});
+            const copyBtn = document.getElementById('graph-copy-btn');
+            if (copyBtn) {
+                copyBtn.classList.add('copied');
+                copyBtn.title = t.graph_copied || 'Copied';
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.title = t.graph_copy || 'Copy';
+                }, 1600);
+            }
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function renderGraph(elements) {
+            hideGraphNodePanel();
+            const container = document.getElementById('cy');
+            const metaEl = document.getElementById('graph-meta');
+            const statusEl = document.getElementById('graph-chip-status');
+            const alertEl = document.getElementById('graph-chip-alert');
+            const stepEl = document.getElementById('graph-chip-step');
+            const skipBtn = document.getElementById('graph-skip-btn');
+            const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+            if (!container || typeof cytoscape === 'undefined') return;
+
+            if (window._graphRevealTimer) { clearTimeout(window._graphRevealTimer); window._graphRevealTimer = null; }
+            if (window._cyGraph) { try { window._cyGraph.destroy(); } catch (e) {} window._cyGraph = null; }
+
+            const nodes = ((elements && elements.nodes) || []).map(n => ({ data: { ...(n.data || n) } }));
+            const edges = ((elements && elements.edges) || []).map(e => ({ data: { ...(e.data || e) } }));
+            const meta = (elements && elements.meta) || {};
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const sanctionedCount = (meta.sanctioned_nodes || 0) || nodes.filter(n => n.data && n.data.is_sanctioned).length;
+
+            if (metaEl) {
+                const bits = [];
+                if (meta.counterparties != null) bits.push(`${meta.counterparties} ${t.graph_counterparties || 'counterparties'}`);
+                if (meta.flows != null) bits.push(`${meta.flows} ${t.graph_flows || 'flows'}`);
+                if (sanctionedCount) bits.push(`${sanctionedCount} ${t.graph_sanctioned || 'sanctioned'}`);
+                metaEl.innerText = bits.join(' · ') || (t.graph_hover || '');
+            }
+            if (alertEl) {
+                if (sanctionedCount > 0) {
+                    alertEl.textContent = `${sanctionedCount} ${t.graph_sanctioned || 'sanctioned'}`;
+                    alertEl.classList.add('is-alert');
+                    alertEl.classList.remove('hidden');
+                } else {
+                    alertEl.classList.add('hidden');
+                }
+            }
+
+            window._cyGraph = cytoscape({
+                container,
+                elements: { nodes, edges },
+                style: [
+                    { selector: 'node', style: {
+                        'background-color': 'data(color)', 'background-opacity': 0.78,
+                        'label': 'data(label)', 'color': '#f1f5f9',
+                        'font-size': 9, 'text-valign': 'bottom', 'text-margin-y': 7,
+                        'text-outline-width': 2.5, 'text-outline-color': '#070b14',
+                        'width': 'mapData(size, 30, 80, 30, 62)', 'height': 'mapData(size, 30, 80, 30, 62)',
+                        'border-width': 2.2, 'border-color': 'rgba(255,255,255,0.55)', 'border-opacity': 0.85,
+                        'underlay-color': 'data(color)', 'underlay-padding': 8, 'underlay-opacity': 0.22, 'underlay-shape': 'ellipse',
+                        'opacity': 1,
+                    }},
+                    { selector: 'node[?is_you]', style: {
+                        'background-color': '#67e8f9', 'background-opacity': 0.85,
+                        'border-color': 'rgba(255,255,255,0.75)', 'border-width': 3,
+                        'underlay-color': '#22d3ee', 'underlay-padding': 12, 'underlay-opacity': 0.4,
+                    }},
+                    { selector: 'node[?is_sanctioned]', style: {
+                        'background-color': '#ff1f1f', 'background-opacity': 0.92,
+                        'border-color': '#fecaca', 'border-width': 3,
+                        'underlay-color': '#ff0000', 'underlay-padding': 14, 'underlay-opacity': 0.55,
+                    }},
+                    { selector: 'node.hidden-reveal', style: { 'opacity': 0, 'width': 1, 'height': 1, 'underlay-opacity': 0 }},
+                    { selector: 'node.dim', style: { 'opacity': 0.12, 'underlay-opacity': 0 }},
+                    { selector: 'edge', style: {
+                        'width': 1.8, 'line-color': 'data(color)', 'target-arrow-color': 'data(color)',
+                        'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'opacity': 0.8, 'arrow-scale': 0.75,
+                    }},
+                    { selector: 'edge[?hot]', style: { 'width': 2.6, 'line-color': '#ff2d2d', 'target-arrow-color': '#ff2d2d' }},
+                    { selector: 'edge.hidden-reveal', style: { 'opacity': 0 }},
+                    { selector: 'edge.dim', style: { 'opacity': 0.08 }},
+                ],
+                layout: { name: 'cose', animate: false, padding: 24, nodeRepulsion: 9000, idealEdgeLength: 80 },
+                wheelSensitivity: 0.2,
+            });
+            const cy = window._cyGraph;
+            requestAnimationFrame(() => { try { cy.resize(); cy.fit(undefined, 28); } catch (e) {} });
+            cy.on('tap', 'node', (evt) => {
+                showGraphNodeDetail(evt.target.data(), evt.target.renderedPosition());
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            });
+            cy.on('tap', (evt) => {
+                if (evt.target === cy) hideGraphNodePanel();
+            });
+            cy.on('pan zoom', () => hideGraphNodePanel());
+
+            const setStatus = (text, live) => {
+                if (!statusEl) return;
+                statusEl.textContent = text;
+                statusEl.classList.toggle('is-live', !!live);
+            };
+            const setStep = (text) => { if (stepEl) stepEl.textContent = text || ''; };
+            const finishReveal = () => {
+                cy.elements().removeClass('hidden-reveal dim');
+                setStatus(t.graph_mapped || 'mapped', true);
+                setStep('');
+                if (skipBtn) skipBtn.classList.add('hidden');
+                window._graphRevealSkip = null;
+            };
+
+            if (reduceMotion || nodes.length <= 1) { finishReveal(); return; }
+
+            const target = cy.nodes().filter(n => !!n.data('is_you'));
+            const sanctioned = cy.nodes().filter(n => !!n.data('is_sanctioned') && !n.data('is_you'));
+            const others = cy.nodes().filter(n => !n.data('is_you') && !n.data('is_sanctioned') && n.id() !== '_empty');
+            cy.elements().addClass('hidden-reveal');
+            target.removeClass('hidden-reveal');
+
+            let cancelled = false;
+            let stepIdx = 0;
+            const queue = [
+                () => { setStatus(t.graph_scanning || 'scanning', true); setStep('1/4'); target.removeClass('hidden-reveal'); },
+                () => { setStep('2/4'); others.removeClass('hidden-reveal'); },
+                () => { setStep('3/4'); cy.edges().removeClass('hidden-reveal'); },
+                () => {
+                    setStep('4/4');
+                    sanctioned.removeClass('hidden-reveal');
+                    if (sanctioned.length) {
+                        cy.elements().addClass('dim');
+                        sanctioned.union(target).union(sanctioned.connectedEdges()).removeClass('dim');
+                        setTimeout(() => { if (!cancelled) cy.elements().removeClass('dim'); }, 700);
+                    }
+                },
+                () => finishReveal(),
+            ];
+            const runNext = () => {
+                if (cancelled || stepIdx >= queue.length) return;
+                queue[stepIdx++]();
+                if (stepIdx < queue.length) window._graphRevealTimer = setTimeout(runNext, 480);
+            };
+            window._graphRevealSkip = () => {
+                cancelled = true;
+                if (window._graphRevealTimer) clearTimeout(window._graphRevealTimer);
+                finishReveal();
+            };
+            if (skipBtn) {
+                skipBtn.classList.remove('hidden');
+                skipBtn.textContent = t.graph_skip || 'Skip';
+                skipBtn.onclick = () => window._graphRevealSkip && window._graphRevealSkip();
+            }
+            setStatus(t.graph_scanning || 'scanning', true);
+            runNext();
+        }
+
+        function shareCurrentResult() {
+            const token = window.lastCheckData && window.lastCheckData.share_token;
+            if (!token) {
+                if (tg.showAlert) tg.showAlert('Share link unavailable'); else alert('Share link unavailable');
+                return;
+            }
+            const url = `${location.origin}/share/${token}`;
+            navigator.clipboard.writeText(url).catch(() => {});
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            if (tg.showAlert) tg.showAlert('Link copied (7 days)'); else alert('Link copied (7 days)');
+        }
+
+        async function disputeCurrent() {
+            const data = window.lastCheckData;
+            if (!data) return;
+            const token = localStorage.getItem('token') || authToken;
+            if (!token) { if (tg.showAlert) tg.showAlert('Login required'); else alert('Login required'); return; }
+            const message = prompt('Describe why the result looks wrong:') || '';
+            if (!message) return;
+            await fetch('/auth/dispute', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address: data.address, chain: data.chain || currentChain, check_id: data.check_id || null, message })
+            });
+            if (tg.showAlert) tg.showAlert('Dispute submitted'); else alert('Dispute submitted');
+        }
+
+        function resetView() {
+            showAppView('home');
+            document.getElementById('address').value = '';
+            if (window._cyGraph) { try { window._cyGraph.destroy(); } catch (e) {} window._cyGraph = null; }
+        }
+
+        async function downloadPDF() {
+            const address = document.getElementById('address').value || (window.lastCheckData && window.lastCheckData.address) || '';
+            const chain = currentChain;
+            const token = localStorage.getItem('token') || localStorage.getItem('access_token') || window.amlToken || authToken;
+            if (!token) { alert('Login required'); return; }
+            const res = await fetch(`/report?address=${encodeURIComponent(address)}&chain=${encodeURIComponent(chain)}&lang=${encodeURIComponent(currentLang || 'en')}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) { alert('PDF requires balance'); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            tg.openLink(url);
+        }
+
+        async function monitorCurrent() {
+            const token = localStorage.getItem('token') || authToken;
+            if (!token) { if (tg.showAlert) tg.showAlert('Login required'); else alert('Login required'); return; }
+            const data = window.lastCheckData;
+            if (!data) return;
+            const label = prompt('Label (optional)', '') || '';
+            try {
+                const res = await fetch('/auth/monitors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        address: data.address || document.getElementById('address').value,
+                        chain: data.chain || currentChain,
+                        label: label.trim() || null,
+                    })
+                });
+                const j = await res.json();
+                if (!res.ok) throw new Error(j.detail || 'Failed');
+                const m = j.monitor || {};
+                const msg = `Watching ${m.label || m.address}: ${m.last_level || ''} ${m.last_score != null ? m.last_score : ''}`;
+                if (tg.showAlert) tg.showAlert(msg); else alert(msg);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (e) {
+                if (tg.showAlert) tg.showAlert(e.message); else alert(e.message);
+            }
+        }
+    </script>
+</body>
+</html>

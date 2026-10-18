@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+httpx
+pydantic
+reportlab
+python-multipart
+aiofiles
+jinja2
+sqlalchemy
+passlib[bcrypt]
+python-jose[cryptography]
+aiogram
+pillow

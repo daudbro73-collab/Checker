@@ -1,28 +1,114 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aml-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: aml
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?err_POSTGRES_PASSWORD_not_set}
+      POSTGRES_DB: aml
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aml -d aml"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: aml-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   aml-backend:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: aml-service
     restart: always
-    ports:
-      - "8000:8000"
+    env_file:
+      - .env
     environment:
       - PORT=8000
-    # Add environment variables here if needed (e.g. API Keys)
-    # env_file:
-    #   - .env
+      - DATABASE_URL=postgresql://aml:${POSTGRES_PASSWORD}@postgres:5432/aml
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Alembic migrations before startup.
+    # forwarded-allow-ips: set to your Nginx/proxy container IP in production,
+    # or use 127.0.0.1 if Nginx runs on the same host.
+    # NEVER use '*' — it allows IP spoofing via X-Forwarded-For.
+    command: >
+      sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000
+      --proxy-headers --forwarded-allow-ips='127.0.0.1'"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # Optional: Nginx Reverse Proxy (for SSL/Domain)
-  # nginx:
-  #   image: nginx:latest
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf
-  #     - ./certs:/etc/nginx/certs
-  #   depends_on:
-  #     - aml-backend
+  aml-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aml-worker
+    restart: always
+    command: ["python", "worker.py"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://aml:${POSTGRES_PASSWORD}@postgres:5432/aml
+      - REDIS_URL=redis://redis:6379/0
+      - SYNC_INTERVAL_SECONDS=86400
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  aml-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aml-bot
+    restart: always
+    command: ["python", "bot.py"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://aml:${POSTGRES_PASSWORD}@postgres:5432/aml
+    depends_on:
+      aml-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  pgdata:

@@ -2,7 +2,7 @@
 <html lang="{{ lang }}" dir="{{ trans.dir }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{{ trans.title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
@@ -10,11 +10,11 @@
     <style>
         body {
             font-family: 'Montserrat', sans-serif;
-            background-color: #030712; /* Deep Space Black */
+            background-color: #020203; /* Ultra Dark */
             background-image: 
-                radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 40%),
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+                radial-gradient(circle at 50% 0%, rgba(30, 27, 75, 0.35) 0%, transparent 38%),
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
             background-size: 100% 100%, 40px 40px, 40px 40px;
             color: #e2e8f0;
         }
@@ -23,7 +23,7 @@
             font-weight: 700;
         }
         .glass-card {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(2, 6, 23, 0.78);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(56, 189, 248, 0.1);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
@@ -38,7 +38,130 @@
         }
         .neon-btn:hover {
             box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
-            transform: translateY(-1px);
+        }
+        #graph-stage {
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse 70% 55% at 50% 42%, rgba(34, 211, 238, 0.07), transparent 62%),
+                radial-gradient(ellipse 40% 30% at 80% 20%, rgba(248, 113, 113, 0.05), transparent 50%),
+                #070b14;
+        }
+        #graph-stage::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(34, 211, 238, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(ellipse at center, black 35%, transparent 75%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        #cy { position: relative; z-index: 1; }
+        .graph-hud {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px 14px;
+        }
+        .graph-hud-top, .graph-hud-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .graph-chip {
+            pointer-events: auto;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            background: rgba(2, 6, 23, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 999px;
+            padding: 4px 10px;
+            backdrop-filter: blur(8px);
+        }
+        .graph-chip.is-live { color: #67e8f9; border-color: rgba(34, 211, 238, 0.35); }
+        .graph-chip.is-alert { color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); }
+        .graph-skip {
+            pointer-events: auto;
+            font-size: 11px;
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 8px;
+            padding: 5px 12px;
+            cursor: pointer;
+        }
+        .graph-skip:hover { border-color: #67e8f9; color: #67e8f9; }
+        .graph-skip.hidden { display: none; }
+        #graph-node-panel {
+            display: none;
+            position: absolute;
+            z-index: 5;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            width: auto;
+            max-width: none;
+            margin: 0;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+            pointer-events: auto;
+        }
+        #graph-node-panel.is-open { display: block; }
+        #graph-node-panel.is-floating {
+            right: auto;
+            bottom: auto;
+            width: min(360px, calc(100% - 24px));
+        }
+        #graph-node-panel.is-sanctioned {
+            border-color: rgba(248, 113, 113, 0.55);
+            background: rgba(40, 8, 8, 0.92);
+        }
+        .graph-node-addr {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+            max-width: 100%;
+        }
+        @media (min-width: 768px) {
+            .graph-node-addr { font-size: 11px; }
+        }
+        .graph-copy-btn {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(2, 6, 23, 0.8);
+            color: #67e8f9;
+            cursor: pointer;
+        }
+        .graph-copy-btn:hover { border-color: #67e8f9; }
+        .graph-copy-btn.copied { color: #34d399; border-color: rgba(52, 211, 153, 0.45); }
+        .graph-copy-btn svg { width: 15px; height: 15px; }
+        @keyframes graph-sanction-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55); }
+            50% { box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .graph-skip { display: none !important; }
         }
         .risk-high { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
         .risk-med { color: #f59e0b; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
@@ -48,67 +171,189 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        /* Select Dropdown Styling */
+        select option {
+            background-color: #030712 !important;
+            color: #cbd5e1 !important;
+            padding: 12px;
+        }
+        .chain-btn img { width: 14px; height: 14px; display: inline-block; object-fit: contain; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        @media (max-width: 767px) {
+            body.has-mobile-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col has-mobile-nav" data-trans='{{ trans | tojson | e }}'>
 
     <!-- Header -->
-    <header class="w-full py-6 px-8 flex justify-between items-center border-b border-slate-800 glass-card sticky top-0 z-50">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+    <header class="w-full py-3 px-4 md:py-6 md:px-8 flex justify-between items-center border-b border-slate-800 glass-card sticky top-0 z-50">
+        <div class="flex items-center space-x-2 md:space-x-3 min-w-0">
+            <div class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 md:w-8 md:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
+                </svg>
             </div>
-            <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">AML GUARDIAN</h1>
+            <h1 class="text-lg md:text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 truncate">AML GUARD</h1>
         </div>
-        
-        <div class="flex items-center space-x-4">
-             <!-- Language Switcher -->
-             <div class="flex space-x-2 text-xs font-mono">
-                <a href="?lang=en" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'en' else 'text-slate-500 hover:text-slate-300' }}">EN</a>
-                <a href="?lang=ru" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'ru' else 'text-slate-500 hover:text-slate-300' }}">RU</a>
-                <a href="?lang=ar" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'ar' else 'text-slate-500 hover:text-slate-300' }}">AR</a>
-                <a href="?lang=zh" class="px-2 py-1 rounded {{ 'bg-cyan-500/20 text-cyan-400' if lang == 'zh' else 'text-slate-500 hover:text-slate-300' }}">ZH</a>
+
+        <div class="flex items-center gap-2 md:space-x-4 shrink-0">
+            <!-- Balance + top-up (logged-in; mirrors Mini App) -->
+            <div id="header-balance-pill" class="hidden glass-card rounded-full pl-3 pr-1 py-1 items-center gap-2 border border-slate-700/60">
+                <span id="header-balance" class="text-xs font-mono font-medium text-cyan-300">$0.00</span>
+                <button type="button" onclick="openTopUp()" class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 transition-colors border-0" aria-label="{{ trans.pay_title }}">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                </button>
             </div>
-            <div class="hidden md:flex text-xs text-slate-400 font-mono items-center border-l border-slate-700 pl-4">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span> {{ trans.system_status }}
+
+            <button id="auth-btn" type="button" onclick="toggleAuthModal()" class="flex items-center px-3 py-2 md:px-4 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-full text-xs md:text-sm font-medium text-slate-300 transition-all">
+                <svg class="w-4 h-4 mr-1 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span id="auth-text">Sign In</span>
+            </button>
+
+            <div class="relative group z-50">
+                <button id="lang-btn" type="button" class="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-slate-700 hover:border-cyan-400 transition-all shadow-lg shadow-cyan-500/20 focus:outline-none">
+                    <img src="https://flagcdn.com/w80/{{ {'en':'us','ru':'ru','es':'es','fr':'fr','ar':'sa'}.get(lang, 'us') }}.png" alt="Language" class="w-full h-full object-cover">
+                </button>
+                <div id="lang-menu" class="hidden absolute right-0 mt-2 min-w-[148px] bg-[#0b1121] border border-slate-600/80 rounded-xl p-2 flex flex-col gap-1 shadow-2xl z-[60]">
+                    <a href="?lang=en" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200">
+                        <img src="https://flagcdn.com/w40/us.png" class="w-5 h-5 rounded-full object-cover" alt=""> English
+                    </a>
+                    <a href="?lang=ru" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200">
+                        <img src="https://flagcdn.com/w40/ru.png" class="w-5 h-5 rounded-full object-cover" alt=""> Русский
+                    </a>
+                    <a href="?lang=es" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200">
+                        <img src="https://flagcdn.com/w40/es.png" class="w-5 h-5 rounded-full object-cover" alt=""> Español
+                    </a>
+                    <a href="?lang=fr" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200">
+                        <img src="https://flagcdn.com/w40/fr.png" class="w-5 h-5 rounded-full object-cover" alt=""> Français
+                    </a>
+                    <a href="?lang=ar" class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 text-xs text-slate-200">
+                        <img src="https://flagcdn.com/w40/sa.png" class="w-5 h-5 rounded-full object-cover" alt=""> العربية
+                    </a>
+                </div>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow container mx-auto px-4 py-12 max-w-6xl">
+    <main class="flex-grow container mx-auto px-4 py-6 md:py-12 max-w-6xl">
         
         <!-- Search Section -->
-        <div class="text-center mb-16">
-            <h2 class="text-4xl md:text-5xl font-bold mb-4 text-white">{{ trans.heading_prefix }} <span class="text-cyan-400">{{ trans.heading_suffix }}</span></h2>
-            <p class="text-slate-400 text-lg mb-8 max-w-2xl mx-auto">{{ trans.subheading }}</p>
+        <div id="search-hero" class="text-center mb-8 md:mb-16 relative z-10">
+            <h2 class="text-3xl md:text-5xl font-bold mb-3 md:mb-4 text-white">{{ trans.heading_prefix }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">{{ trans.heading_suffix }}</span></h2>
+            <p class="text-slate-400 text-sm md:text-lg mb-6 md:mb-8 max-w-2xl mx-auto px-2">{{ trans.subheading }}</p>
             
-            <div class="glass-card p-2 rounded-2xl max-w-3xl mx-auto flex flex-col md:flex-row gap-2 transition-all duration-300 hover:border-cyan-500/30">
-                <select id="chain" class="bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-4 focus:outline-none focus:border-cyan-500 transition-colors w-full md:w-48 font-mono text-sm appearance-none cursor-pointer hover:bg-slate-800/50">
-                    <option value="ETH">Ethereum (ETH)</option>
-                    <option value="TRON">Tron (TRX/USDT)</option>
-                    <option value="BTC">Bitcoin (BTC)</option>
-                    <option value="BSC">BSC (BNB)</option>
-                    <option value="POLYGON">Polygon</option>
-                    <option value="AVALANCHE">Avalanche</option>
-                    <option value="OPTIMISM">Optimism</option>
-                </select>
+            <div class="relative max-w-3xl mx-auto group">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-600 rounded-2xl blur opacity-40 md:opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
                 
-                <div class="relative w-full">
-                    <input type="text" id="address" placeholder="{{ trans.placeholder }}" 
-                        class="bg-slate-900/50 border border-slate-700 text-white rounded-xl pl-6 pr-12 py-4 w-full focus:outline-none neon-input transition-all font-mono text-sm tracking-wide"
-                        onkeypress="if(event.key === 'Enter') checkWallet()">
-                    <button onclick="navigator.clipboard.readText().then(t=>document.getElementById('address').value=t)" 
-                        class="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-cyan-400 p-2 transition-colors" title="Paste">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                    </button>
-                </div>
+                <div class="relative bg-slate-950 rounded-2xl flex flex-col p-2 md:p-3 border border-slate-800/50 shadow-2xl">
+                    <!-- Mobile chain chips (Mini App parity) -->
+                    <div id="mobile-chain-chips" class="flex flex-wrap gap-1 p-1 mb-2 bg-black/40 rounded-xl border border-white/5 justify-center md:hidden">
+                        <button type="button" onclick="selectChain('ETH','Ethereum')" class="chain-btn active flex-1 min-w-[48px] p-2 rounded-xl text-[11px] font-medium bg-slate-800 text-white shadow-sm flex items-center justify-center gap-1" data-chain="ETH">
+                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg" alt=""> ETH
+                        </button>
+                        <button type="button" onclick="selectChain('BSC','BNB Smart Chain')" class="chain-btn flex-1 min-w-[48px] p-2 rounded-xl text-[11px] font-medium text-slate-400 flex items-center justify-center gap-1" data-chain="BSC">
+                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bnb.svg" alt=""> BSC
+                        </button>
+                        <button type="button" onclick="selectChain('TON','The Open Network')" class="chain-btn flex-1 min-w-[48px] p-2 rounded-xl text-[11px] font-medium text-slate-400 flex items-center justify-center gap-1" data-chain="TON">
+                            <img src="/static/icons/ton.png" class="rounded-full" alt=""> TON
+                        </button>
+                        <button type="button" onclick="selectChain('SOL','Solana')" class="chain-btn flex-1 min-w-[48px] p-2 rounded-xl text-[11px] font-medium text-slate-400 flex items-center justify-center gap-1" data-chain="SOL">
+                            <img src="/static/icons/sol.png" class="rounded-full" alt=""> SOL
+                        </button>
+                        <button type="button" onclick="selectChain('TRON','Tron')" class="chain-btn flex-1 min-w-[48px] p-2 rounded-xl text-[11px] font-medium text-slate-400 flex items-center justify-center gap-1" data-chain="TRON">
+                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/trx.svg" alt=""> TRON
+                        </button>
+                        <button type="button" onclick="selectChain('BTC','Bitcoin')" class="chain-btn flex-1 min-w-[48px] p-2 rounded-xl text-[11px] font-medium text-slate-400 flex items-center justify-center gap-1" data-chain="BTC">
+                            <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg" alt=""> BTC
+                        </button>
+                    </div>
 
-                <button onclick="checkWallet()" class="neon-btn text-white font-bold py-4 px-8 rounded-xl shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
-                    <span>{{ trans.analyze_btn }}</span>
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <div class="flex flex-col md:flex-row items-center">
+                    <input type="hidden" id="chain" value="ETH">
+                    <!-- Chain Select (desktop dropdown) -->
+                    <div class="relative w-full md:w-48 border-b md:border-b-0 md:border-r border-slate-800 hidden md:block" id="chain-selector">
+                        <button type="button" onclick="toggleChainMenu(event)" class="w-full h-full flex items-center justify-between bg-transparent text-white font-medium py-4 px-4 hover:text-cyan-400 transition-colors focus:outline-none group">
+                            <span id="selected-chain-display" class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-white/10 p-1 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform" id="chain-icon-container"><img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg" class="w-full h-full object-contain" alt="ETH"></div>
+                                <span class="text-sm tracking-wide">Ethereum</span>
+                            </span>
+                            <svg class="w-4 h-4 ml-3 text-slate-500 transition-transform duration-300 group-hover:text-cyan-400" id="chain-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div id="chain-menu" class="hidden absolute top-[calc(100%+8px)] left-0 w-full min-w-[180px] bg-[#0b1121] border border-slate-700/50 rounded-xl z-[60] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] overflow-hidden animate-fade-in-up backdrop-blur-xl">
+                            <div class="max-h-[300px] overflow-y-auto custom-scrollbar py-1">
+                                <div onclick="selectChain('ETH', 'Ethereum')" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/80 cursor-pointer transition-all group border-b border-slate-800/30 last:border-0">
+                                    <div class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg" class="w-full h-full object-contain" alt="ETH">
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">Ethereum</span>
+                                </div>
+                                <div onclick="selectChain('BSC', 'BNB Smart Chain')" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/80 cursor-pointer transition-all group border-b border-slate-800/30 last:border-0">
+                                    <div class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bnb.svg" class="w-full h-full object-contain" alt="BSC">
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">BNB Smart Chain</span>
+                                </div>
+                                <div onclick="selectChain('TON', 'The Open Network')" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/80 cursor-pointer transition-all group border-b border-slate-800/30 last:border-0">
+                                    <div class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <img src="/static/icons/ton.png" class="w-full h-full object-contain rounded-full" alt="TON">
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">The Open Network</span>
+                                </div>
+                                <div onclick="selectChain('SOL', 'Solana')" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/80 cursor-pointer transition-all group border-b border-slate-800/30 last:border-0">
+                                    <div class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <img src="/static/icons/sol.png" class="w-full h-full object-contain rounded-full" alt="SOL">
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">Solana</span>
+                                </div>
+                                <div onclick="selectChain('TRON', 'Tron')" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/80 cursor-pointer transition-all group border-b border-slate-800/30 last:border-0">
+                                    <div class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/trx.svg" class="w-full h-full object-contain" alt="TRX">
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">Tron</span>
+                                </div>
+                                <div onclick="selectChain('BTC', 'Bitcoin')" class="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/80 cursor-pointer transition-all group border-b border-slate-800/30 last:border-0">
+                                    <div class="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <img src="https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg" class="w-full h-full object-contain" alt="BTC">
+                                    </div>
+                                    <span class="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">Bitcoin</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="relative flex-grow w-full">
+                        <input type="text" id="address" placeholder="{{ trans.placeholder }}" 
+                            class="w-full bg-transparent text-white text-base md:text-lg px-4 md:px-6 py-3.5 md:py-4 focus:outline-none font-mono placeholder-slate-600"
+                            oninput="autoDetectChain()" onpaste="setTimeout(autoDetectChain, 0)"
+                            onkeypress="if(event.key === 'Enter') checkWallet()">
+                        <button type="button" onclick="navigator.clipboard.readText().then(t=>{document.getElementById('address').value=t; autoDetectChain();})" 
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors p-2" title="Paste">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </button>
+                    </div>
+
+                    <button type="button" onclick="checkWallet()" class="w-full md:w-auto m-1 mt-2 md:mt-1 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white px-5 py-3.5 md:p-4 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <span class="md:hidden">{{ trans.analyze_btn }}</span>
+                    </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 flex justify-center">
+                <button type="button" onclick="setDemoWallet()" class="px-4 py-2 rounded-lg bg-white/5 border border-indigo-500/30 text-[11px] text-indigo-300 font-medium hover:bg-indigo-500/10 hover:border-indigo-400 transition-all">
+                    {{ trans.try_demo }}
                 </button>
             </div>
         </div>
+
+
 
         <!-- Loader -->
         <div id="loader" class="hidden flex flex-col items-center justify-center py-12">
@@ -126,42 +371,128 @@
         </div>
 
         <!-- Results Dashboard -->
-        <div id="result" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in-up">
-            
-            <!-- Left Column: Score & Details -->
-            <div class="lg:col-span-1 space-y-6">
-                <!-- Risk Score Card -->
-                <div class="glass-card rounded-2xl p-6 text-center relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-indigo-500"></div>
-                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">{{ trans.risk_score }}</h3>
-                    <div class="relative w-40 h-40 mx-auto flex items-center justify-center">
-                        <svg class="w-full h-full transform -rotate-90">
-                            <circle cx="80" cy="80" r="70" stroke="#1e293b" stroke-width="12" fill="none"></circle>
-                            <circle id="score-circle" cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="none" stroke-dasharray="440" stroke-dashoffset="440" class="text-cyan-500 transition-all duration-1000 ease-out"></circle>
-                        </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span id="score-val" class="text-5xl font-bold text-white brand-font">0</span>
-                            <span id="risk-level" class="text-xs font-bold px-2 py-1 rounded bg-slate-800 mt-1">{{ trans.safe }}</span>
+        <div id="result" class="hidden space-y-6 animate-fade-in-up">
+
+            <!-- Risk + verdict (single block) -->
+            <div id="verdict-card" class="glass-card rounded-2xl p-6 border border-cyan-500/20 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-indigo-500"></div>
+                <div class="flex flex-col md:flex-row md:items-start gap-6">
+                    <div class="shrink-0 text-center mx-auto md:mx-0">
+                        <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2">{{ trans.risk_score }}</div>
+                        <div class="relative w-36 h-36 mx-auto flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="72" cy="72" r="62" stroke="#1e293b" stroke-width="10" fill="none"></circle>
+                                <circle id="score-circle" cx="72" cy="72" r="62" stroke="currentColor" stroke-width="10" fill="none" stroke-dasharray="390" stroke-dashoffset="390" class="text-cyan-500 transition-all duration-1000 ease-out"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="score-val" class="text-4xl font-bold text-white brand-font">0</span>
+                                <span id="score-level-pill" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 mt-1">{{ trans.safe }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <span id="verdict-badge" class="text-2xl md:text-3xl font-bold text-emerald-400">SAFE</span>
+                        <p id="verdict-summary" class="mt-2 text-slate-300 text-sm md:text-base leading-relaxed">—</p>
+                        <div id="exposure-block" class="mt-3 hidden">
+                            <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">{{ trans.exposure_title }}</div>
+                            <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div id="exposure-bar" class="h-full bg-amber-500 transition-all" style="width:0%"></div>
+                            </div>
+                            <div id="exposure-label" class="text-xs text-slate-400 mt-1 font-mono">0%</div>
+                        </div>
+                        <div id="verdict-action" class="mt-3 text-sm text-cyan-200/90 bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-3">—</div>
+                        <div id="data-stamp" class="mt-2 text-[10px] text-slate-500"></div>
+                        <div class="grid grid-cols-2 gap-2 mt-4 md:flex md:flex-wrap">
+                            <button type="button" onclick="shareCurrentResult()" title="{{ trans.btn_share_hint }}" class="px-3 py-3 md:py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-white hover:border-cyan-400 flex flex-col md:flex-row items-center justify-center gap-1">{{ trans.btn_share }}</button>
+                            <button type="button" onclick="monitorCurrent()" title="{{ trans.btn_monitor_hint }}" class="px-3 py-3 md:py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-cyan-300 hover:border-cyan-400 flex flex-col md:flex-row items-center justify-center gap-1">{{ trans.btn_monitor }}</button>
+                            <button type="button" onclick="downloadPDF()" title="{{ trans.btn_pdf_hint }}" class="px-3 py-3 md:py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-white hover:border-cyan-400 flex flex-col md:flex-row items-center justify-center gap-1">{{ trans.btn_pdf }}</button>
+                            <button type="button" onclick="disputeCurrent()" title="{{ trans.btn_dispute_hint }}" class="px-3 py-3 md:py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-slate-300 hover:border-amber-400 flex flex-col md:flex-row items-center justify-center gap-1">{{ trans.btn_dispute }}</button>
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- CEX Compatibility & Safety Profile Block -->
+            <div id="cex-safety-block" class="glass-card rounded-2xl p-5 md:p-6 border border-emerald-500/30 transition-all duration-300 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-slate-900/90 border border-slate-700/80 shadow-inner">
+                            🛡️
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Биржевой риск-профиль депозита</div>
+                            <div class="text-xs text-slate-500">Binance · Bybit · OKX · HTX · KuCoin</div>
+                        </div>
+                    </div>
+                    <div id="cex-badge-pill" class="px-3 py-1.5 rounded-xl font-bold text-xs inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 self-start sm:self-auto shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-current animate-pulse"></span>
+                        <span id="cex-badge-text">—</span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h4 id="cex-headline-text" class="text-base md:text-lg font-bold text-white mb-2">
+                        —
+                    </h4>
+                    <p id="cex-advice-text" class="text-sm text-slate-300 leading-relaxed bg-slate-900/50 p-3.5 rounded-xl border border-slate-800/80">
+                        —
+                    </p>
+                </div>
+
+                <!-- Criteria Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">OFAC / EU / UN</div>
+                        <div id="crit-sanctions" class="text-xs font-semibold text-emerald-400">✓ ЧИСТО</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Tether USDT</div>
+                        <div id="crit-tether" class="text-xs font-semibold text-emerald-400">✓ ЧИСТО</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Fake Asset Shield</div>
+                        <div id="crit-assets" class="text-xs font-semibold text-emerald-400">✓ ЧИСТО</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Атрибуция потоков</div>
+                        <div id="crit-attribution" class="text-xs font-semibold text-cyan-400">—</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Миксеры / Хаки</div>
+                        <div id="crit-mixer" class="text-xs font-semibold text-emerald-400">✓ 0.0%</div>
+                    </div>
+                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1">Anti-Dusting</div>
+                        <div id="crit-dust" class="text-xs font-semibold text-cyan-400">🛡️ Активна</div>
+                    </div>
+                </div>
+            </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Assets -->
+            <div class="lg:col-span-1 space-y-6">
                 <!-- Wallet Details -->
                 <div class="glass-card rounded-2xl p-6">
-                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">Asset Overview</h3>
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">{{ trans.asset_overview }}</h3>
                     <div class="space-y-4">
-                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                            <span class="text-slate-500 text-sm">{{ trans.balance }}</span>
-                            <span id="balance-val" class="text-white font-mono font-bold">0.00</span>
+                        <div id="balance-total-row" class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-500 text-sm">{{ trans.balance_total }}</span>
+                            <span id="balance-total-val" class="text-cyan-300 font-mono font-bold text-right text-sm">—</span>
                         </div>
                         <div id="usdt-row" class="hidden flex justify-between items-center border-b border-slate-800 pb-2">
                             <span class="text-slate-500 text-sm">USDT</span>
                             <span id="usdt-val" class="text-green-400 font-mono font-bold">0.00</span>
                         </div>
+                        <div id="native-row" class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-500 text-sm" id="native-label">{{ trans.balance_native }}</span>
+                            <span id="balance-val" class="text-white font-mono font-bold">0.00</span>
+                        </div>
                         <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                             <span class="text-slate-500 text-sm">{{ trans.tx_count }}</span>
                             <span id="tx-count" class="text-white font-mono">0</span>
                         </div>
+                        <p id="tx-count-note" class="text-[10px] text-slate-500 font-mono -mt-2"></p>
+                        <p id="balance-note" class="text-[10px] text-slate-500 font-mono hidden"></p>
                         <div class="flex justify-between items-center">
                             <span class="text-slate-500 text-sm">{{ trans.sanctions }}</span>
                             <span id="sanction-status" class="text-green-400 text-xs px-2 py-1 bg-green-400/10 rounded border border-green-400/20">{{ trans.clean }}</span>
@@ -173,16 +504,54 @@
             <!-- Middle/Right Column: Graph & Factors -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- Graph Visualization -->
-                <div class="glass-card rounded-2xl p-6 h-[400px] flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-widest">Transaction Flow Graph</h3>
-                        <div class="flex space-x-2">
-                            <span class="w-3 h-3 rounded-full bg-blue-500"></span><span class="text-xs text-slate-500 mr-2">Target</span>
-                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="text-xs text-slate-500 mr-2">In</span>
-                            <span class="w-3 h-3 rounded-full bg-red-500"></span><span class="text-xs text-slate-500">Out</span>
+                <div class="glass-card rounded-2xl p-4 md:p-6 h-[560px] md:h-[680px] flex flex-col">
+                    <div class="flex justify-between items-center mb-3 gap-2 flex-wrap">
+                        <h3 class="text-xs md:text-sm font-semibold text-slate-400 uppercase tracking-widest">{{ trans.graph_title }}</h3>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="inline-flex items-center gap-1.5 mr-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.9)] ring-1 ring-cyan-200/40"></span>
+                                <span class="text-[10px] md:text-xs text-slate-400">{{ trans.graph_you }}</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 mr-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]"></span>
+                                <span class="text-[10px] md:text-xs text-slate-400">{{ trans.graph_in }}</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 mr-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.7)]"></span>
+                                <span class="text-[10px] md:text-xs text-slate-400">{{ trans.graph_out }}</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_14px_rgba(255,45,45,0.95)] ring-2 ring-red-400/60"></span>
+                                <span class="text-[10px] md:text-xs text-red-300">{{ trans.graph_sanctioned }}</span>
+                            </span>
                         </div>
                     </div>
-                    <div id="cy" class="flex-grow w-full bg-slate-900/50 rounded-xl border border-slate-800"></div>
+                    <p id="graph-meta" class="text-[10px] text-slate-500 mb-2 font-mono"></p>
+                    <div id="graph-stage" class="relative flex-grow w-full min-h-[420px] md:min-h-[520px] rounded-xl border border-slate-800/80">
+                        <div id="cy" class="absolute inset-0 w-full h-full"></div>
+                        <div class="graph-hud" id="graph-hud">
+                            <div class="graph-hud-top">
+                                <span class="graph-chip" id="graph-chip-status">{{ trans.graph_idle }}</span>
+                                <span class="graph-chip hidden" id="graph-chip-alert"></span>
+                            </div>
+                            <div class="graph-hud-bottom">
+                                <span class="graph-chip" id="graph-chip-step"></span>
+                                <button type="button" class="graph-skip hidden" id="graph-skip-btn">{{ trans.graph_skip }}</button>
+                            </div>
+                        </div>
+                        <div id="graph-node-panel" aria-live="polite">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <div id="graph-node-role" class="text-[10px] uppercase tracking-widest text-slate-500 mb-0.5"></div>
+                                    <div id="graph-node-addr" class="graph-node-addr" title=""></div>
+                                    <div id="graph-node-extra" class="text-[10px] text-slate-400 mt-0.5 truncate"></div>
+                                </div>
+                                <button type="button" id="graph-copy-btn" class="graph-copy-btn" title="{{ trans.graph_copy }}" aria-label="{{ trans.graph_copy }}" onclick="event.stopPropagation(); copyGraphNodeAddress()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Risk Factors -->
@@ -195,20 +564,20 @@
                 </div>
 
                 <!-- Recent Transactions Table -->
-                <div class="glass-card rounded-2xl p-6">
-                    <h3 class="text-xl text-cyan-400 mb-4 flex items-center gap-2 font-bold">
+                <div class="glass-card rounded-2xl p-4 md:p-6">
+                    <h3 class="text-lg md:text-xl text-cyan-400 mb-4 flex items-center gap-2 font-bold">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                         {{ trans.recent_txs }}
                     </h3>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
+                        <table class="w-full text-left text-xs md:text-sm">
                             <thead>
                                 <tr class="text-slate-400 border-b border-slate-800">
-                                    <th class="p-3">Hash</th>
-                                    <th class="p-3">From</th>
-                                    <th class="p-3">To</th>
-                                    <th class="p-3">Value</th>
-                                    <th class="p-3">Date</th>
+                                    <th class="p-2 md:p-3">Hash</th>
+                                    <th class="p-2 md:p-3">From</th>
+                                    <th class="p-2 md:p-3">To</th>
+                                    <th class="p-2 md:p-3">Value</th>
+                                    <th class="p-2 md:p-3">Date</th>
                                 </tr>
                             </thead>
                             <tbody id="txTableBody" class="text-slate-300">
@@ -220,75 +589,1059 @@
             </div>
 
         </div>
+        </div>
 
-        <!-- Download Button -->
-        <div id="download-section" class="hidden text-center mt-12 pb-12">
-            <button onclick="downloadPDF()" class="group relative inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-slate-800 border border-slate-700 rounded-full hover:bg-slate-700 transition-all">
+        <div id="download-section" class="hidden text-center mt-8 md:mt-12 pb-8 md:pb-12 space-y-3">
+            <button type="button" onclick="downloadPDF()" class="group relative inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-slate-800 border border-slate-700 rounded-full hover:bg-slate-700 transition-all">
                 <span class="absolute w-full h-full bg-gradient-to-r from-cyan-500 to-blue-500 opacity-0 group-hover:opacity-20 rounded-full transition-opacity"></span>
                 <svg class="w-5 h-5 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 {{ trans.feat_pdf }}
             </button>
+            <div>
+                <button type="button" onclick="resetCheckView()" class="w-full max-w-sm mx-auto px-6 py-3 rounded-2xl glass-card border border-emerald-500/30 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 transition">
+                    {{ trans.new_check }}
+                </button>
+            </div>
         </div>
 
-        <!-- Pricing Section (Monetization) -->
-        <div id="pricing" class="mt-20 border-t border-slate-800 pt-16">
+        <div id="landing-extra">
+        <div class="mt-20 border-t border-slate-800 pt-16">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-white mb-2">{{ trans.pricing_title }}</h2>
+                <h2 class="text-3xl font-bold text-white mb-3">О технологии AML Guard</h2>
+                <p class="text-slate-400 max-w-3xl mx-auto">{{ trans.how_sub }}</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-cyan-300 mb-2">{{ trans.how_1_t }}</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">{{ trans.how_1_b }}</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-cyan-300 mb-2">{{ trans.how_2_t }}</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">{{ trans.how_2_b }}</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-cyan-300 mb-2">{{ trans.how_3_t }}</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">{{ trans.how_3_b }}</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-cyan-300 mb-2">{{ trans.how_4_t }}</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">{{ trans.how_4_b }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Section -->
+        <div class="mt-24 mb-16">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-white mb-2">{{ trans.pricing_title }}</h3>
                 <p class="text-slate-400">{{ trans.pricing_sub }}</p>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Free Plan -->
-                <div class="glass-card p-8 rounded-2xl hover:border-cyan-500/30 transition-all">
-                    <h3 class="text-xl font-bold text-slate-300 mb-2">{{ trans.plan_free }}</h3>
-                    <div class="text-3xl font-bold text-white mb-1">{{ trans.plan_free_price }}</div>
-                    <div class="text-sm text-slate-500 mb-6">{{ trans.plan_free_desc }}</div>
-                    <ul class="space-y-3 text-sm text-slate-300 mb-8">
-                        <li class="flex items-center"><svg class="w-4 h-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 5 {{ trans.feat_checks }}</li>
-                        <li class="flex items-center"><svg class="w-4 h-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Basic {{ trans.risk_score }}</li>
-                        <li class="flex items-center opacity-50"><svg class="w-4 h-4 text-slate-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> {{ trans.feat_pdf }}</li>
-                    </ul>
-                    <button class="w-full py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition">Current Plan</button>
-                </div>
+            <!-- Premium Single Check -->
+            <div class="max-w-4xl mx-auto">
+                <div class="glass-card p-10 rounded-3xl border border-cyan-500/50 shadow-2xl shadow-cyan-500/20 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 bg-gradient-to-l from-cyan-500 to-blue-600 text-white text-sm font-bold px-6 py-2 rounded-bl-2xl shadow-lg uppercase tracking-wider">Best Value</div>
+                    
+                    <div class="flex flex-col md:flex-row gap-10 items-center">
+                        <!-- Left: Info -->
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="text-2xl font-bold text-white mb-2">{{ trans.plan_premium }}</h3>
+                            <div class="flex items-baseline justify-center md:justify-start gap-2 mb-4">
+                                <span class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">$1.00</span>
+                                <span class="text-slate-400 text-sm uppercase tracking-wide">/ check</span>
+                            </div>
+                            <p class="text-slate-300 mb-8 leading-relaxed">{{ trans.plan_premium_desc }}</p>
+                            
+                            <button class="w-full md:w-auto px-12 py-4 neon-btn rounded-xl text-white font-bold text-lg shadow-lg hover:shadow-cyan-500/40 transition transform hover:scale-[1.02] active:scale-[0.98]">
+                                Start Full Analysis
+                            </button>
+                        </div>
 
-                <!-- Pro Plan -->
-                <div class="glass-card p-8 rounded-2xl border-cyan-500/50 shadow-lg shadow-cyan-500/10 transform scale-105 z-10">
-                    <div class="absolute top-0 right-0 bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">POPULAR</div>
-                    <h3 class="text-xl font-bold text-white mb-2">{{ trans.plan_pro }}</h3>
-                    <div class="text-3xl font-bold text-cyan-400 mb-1">{{ trans.plan_pro_price }}<span class="text-sm text-slate-400 font-normal">{{ trans.plan_pro_period }}</span></div>
-                    <div class="text-sm text-slate-400 mb-6">{{ trans.plan_pro_desc }}</div>
-                    <ul class="space-y-3 text-sm text-white mb-8">
-                        <li class="flex items-center"><svg class="w-4 h-4 text-cyan-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Unlimited {{ trans.feat_checks }}</li>
-                        <li class="flex items-center"><svg class="w-4 h-4 text-cyan-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ trans.feat_pdf }}</li>
-                        <li class="flex items-center"><svg class="w-4 h-4 text-cyan-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Advanced Graph</li>
-                    </ul>
-                    <button class="w-full py-2 neon-btn rounded-lg text-white font-bold hover:shadow-lg transition">Upgrade Now</button>
+                        <!-- Right: Databases Grid -->
+                        <div class="flex-1 w-full bg-slate-900/50 rounded-2xl p-6 border border-slate-700/50">
+                            <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 text-center">{{ trans.feat_databases }}</div>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                                    <span class="w-2 h-2 mt-1.5 rounded-full bg-red-500 shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white mb-1">{{ trans.db_ofac }}</div>
+                                        <div class="text-[10px] text-slate-400 leading-tight">{{ trans.db_desc_ofac }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                                    <span class="w-2 h-2 mt-1.5 rounded-full bg-blue-500 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white mb-1">{{ trans.db_hacks }}</div>
+                                        <div class="text-[10px] text-slate-400 leading-tight">{{ trans.db_desc_hacks }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                                    <span class="w-2 h-2 mt-1.5 rounded-full bg-purple-500 shrink-0 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white mb-1">{{ trans.db_darknet }}</div>
+                                        <div class="text-[10px] text-slate-400 leading-tight">{{ trans.db_desc_darknet }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                                    <span class="w-2 h-2 mt-1.5 rounded-full bg-yellow-500 shrink-0 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white mb-1">{{ trans.db_scam }}</div>
+                                        <div class="text-[10px] text-slate-400 leading-tight">{{ trans.db_desc_scam }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                                    <span class="w-2 h-2 mt-1.5 rounded-full bg-indigo-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white mb-1">{{ trans.db_mixer }}</div>
+                                        <div class="text-[10px] text-slate-400 leading-tight">{{ trans.db_desc_mixer }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 hover:border-slate-600 transition">
+                                    <span class="w-2 h-2 mt-1.5 rounded-full bg-orange-500 shrink-0 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></span>
+                                    <div>
+                                        <div class="text-sm font-bold text-white mb-1">{{ trans.db_cex }}</div>
+                                        <div class="text-[10px] text-slate-400 leading-tight">{{ trans.db_desc_cex }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between text-[10px] text-slate-500 uppercase tracking-wider">
+                                <span>{{ trans.inc_pdf }}</span>
+                                <span>{{ trans.inc_graph }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            
 
-                <!-- Enterprise Plan -->
-                <div class="glass-card p-8 rounded-2xl hover:border-indigo-500/30 transition-all">
-                    <h3 class="text-xl font-bold text-slate-300 mb-2">{{ trans.plan_ent }}</h3>
-                    <div class="text-3xl font-bold text-white mb-1">{{ trans.plan_ent_price }}</div>
-                    <div class="text-sm text-slate-500 mb-6">{{ trans.plan_ent_desc }}</div>
-                    <ul class="space-y-3 text-sm text-slate-300 mb-8">
-                        <li class="flex items-center"><svg class="w-4 h-4 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ trans.feat_api }}</li>
-                        <li class="flex items-center"><svg class="w-4 h-4 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> White Label</li>
-                        <li class="flex items-center"><svg class="w-4 h-4 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ trans.feat_support }}</li>
-                    </ul>
-                    <button class="w-full py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition">Contact Sales</button>
+            <div class="mt-8 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass-card rounded-2xl p-6 border border-slate-700/50">
+                    <div class="text-white font-bold text-lg">Pack 20</div>
+                    <div class="text-3xl font-bold text-cyan-400 mt-2">$15</div>
+                    <div class="text-xs text-slate-500 mt-1">$0.75 / check</div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 border border-slate-700/50">
+                    <div class="text-white font-bold text-lg">Pack 50</div>
+                    <div class="text-3xl font-bold text-cyan-400 mt-2">$25</div>
+                    <div class="text-xs text-slate-500 mt-1">$0.50 / check</div>
+                </div>
+            </div>
+
+            <!-- Free for New Users -->
+            <div class="mt-8 text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700 text-xs text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                    <span>1 пробная проверка / сутки · дальше $1 или пакеты 20/$15 · 50/$25</span>
                 </div>
             </div>
         </div>
 
+
+
+        <!-- FAQ Section -->
+        <div class="mt-24 max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold text-white mb-8 text-center">{{ trans.faq_title }}</h2>
+            
+            <div class="space-y-4">
+                <div class="glass-card rounded-xl p-6 border border-slate-800">
+                    <h3 class="text-lg font-bold text-white mb-2">{{ trans.faq_1_q }}</h3>
+                    <p class="text-slate-400 text-sm">{{ trans.faq_1_a }}</p>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-slate-800">
+                    <h3 class="text-lg font-bold text-white mb-2">{{ trans.faq_2_q }}</h3>
+                    <p class="text-slate-400 text-sm">Наша оценка строится на анализе истории транзакций, связей с контрагентами и проверке по санкционным базам.</p>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-slate-800">
+                    <h3 class="text-lg font-bold text-white mb-2">{{ trans.faq_3_q }}</h3>
+                    <p class="text-slate-400 text-sm">{{ trans.faq_3_a }}</p>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-slate-800">
+                    <h3 class="text-lg font-bold text-white mb-2">{{ trans.faq_4_q }}</h3>
+                    <p class="text-slate-400 text-sm">{{ trans.faq_4_a }}</p>
+                </div>
+            </div>
+        </div>
+        </div><!-- /landing-extra -->
+
     </main>
     
-    <footer class="text-center py-8 text-slate-600 text-xs border-t border-slate-900 mt-12">
-        {{ trans.footer }}
+    <!-- Mobile bottom nav (Mini App parity) -->
+    <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 w-full glass-card border-t border-slate-800 pb-safe pt-2 px-6 flex justify-between items-center z-50">
+        <button type="button" onclick="goHomeNav()" class="flex flex-col items-center gap-1 p-2 text-indigo-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-[10px] font-medium">{{ trans.nav_home }}</span>
+        </button>
+        <button type="button" onclick="openHistoryNav()" class="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-medium">{{ trans.nav_history }}</span>
+        </button>
+        <button type="button" onclick="openProfileNav()" class="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-slate-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            <span class="text-[10px] font-medium">{{ trans.nav_profile }}</span>
+        </button>
+    </nav>
+
+    <footer class="border-t border-slate-900 bg-slate-950/50 py-12 mt-20 hidden md:block">
+        <div class="container mx-auto px-4 max-w-5xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-12 text-center md:text-left">
+                <div class="flex flex-col items-center md:items-start">
+                    <h4 class="text-white font-bold mb-6 tracking-wide">Контакты</h4>
+                    <div class="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                        <a href="mailto:hello@amlguard.ai" class="w-11 h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30 hover:scale-105 transition">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l9 6 9-6m-18 8h18a2 2 0 002-2V8a2 2 0 00-2-2H3a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </a>
+                        <a href="https://t.me/amlguard" target="_blank" class="w-11 h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 hover:scale-105 transition">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21.9 4.6a1.5 1.5 0 00-1.7-.2L3.8 11a1.5 1.5 0 00.1 2.8l3.5 1.2 1.3 4.2a1.5 1.5 0 002.6.6l2.1-2.8 3.5 2.6a1.5 1.5 0 002.4-.9l2.9-12.8a1.5 1.5 0 00-.3-1.3zm-4.1 3.1l-7 6.2-.2 2 1.4-1.8 3.9-3.5a.5.5 0 10-.7-.7l-5 4.2-4.2-1.4 11.8-4.9z"></path></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center md:items-start">
+                    <h4 class="text-white font-bold mb-6 tracking-wide">Юридическая информация</h4>
+                    <ul class="space-y-3 text-sm text-slate-400 text-center md:text-left">
+                        <li><a href="/privacy?lang={{ lang }}" class="hover:text-cyan-400 transition">{{ trans.footer_privacy }}</a></li>
+                        <li><a href="/terms?lang={{ lang }}" class="hover:text-cyan-400 transition">{{ trans.footer_terms }}</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="text-center pt-8 border-t border-slate-900/50 text-slate-600 text-xs tracking-wider">
+                {{ trans.footer }}
+            </div>
+        </div>
     </footer>
 
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
+        <div class="glass-card p-6 md:p-8 rounded-2xl w-full max-w-md relative border border-slate-700/50 shadow-2xl">
+            <button onclick="toggleAuthModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <h2 id="auth-title" class="text-2xl font-bold text-white mb-2 text-center">{{ trans.auth_signin }}</h2>
+            <p id="auth-subtitle" class="text-slate-400 text-sm text-center mb-6">{{ trans.auth_subtitle }}</p>
+            
+            <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">{{ trans.auth_email }}</label>
+                    <input type="email" id="email" required class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition-all placeholder-slate-600" placeholder="name@company.com">
+                </div>
+                <div>
+                    <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">{{ trans.auth_password }}</label>
+                    <input type="password" id="password" required class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition-all placeholder-slate-600" placeholder="••••••••">
+                </div>
+                <div id="auth-ref-div" class="hidden">
+                    <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">{{ trans.auth_ref_code }}</label>
+                    <input type="text" id="referral-code" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition-all placeholder-slate-600" placeholder="CODE123">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 neon-btn rounded-lg text-white font-bold shadow-lg hover:shadow-cyan-500/40 transition mt-2 transform active:scale-[0.98]">
+                    {{ trans.auth_continue }}
+                </button>
+            </form>
+            
+            <div id="auth-error" class="hidden mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"></div>
+
+            <p class="text-center text-slate-500 text-sm mt-6">
+                <span id="auth-switch-text">{{ trans.auth_new_user }}</span>
+                <button onclick="toggleAuthMode()" class="text-cyan-400 hover:text-cyan-300 ml-1 font-medium transition-colors" id="auth-switch-btn">{{ trans.auth_create }}</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="pay-modal" class="fixed inset-0 z-[100] hidden items-end md:items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-0 md:p-4">
+        <div class="glass-card p-5 md:p-8 rounded-t-3xl md:rounded-2xl w-full max-w-md relative border border-slate-700/50 shadow-2xl text-center max-h-[92vh] overflow-y-auto">
+            <button type="button" onclick="closeTopUp()" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <div class="w-16 h-16 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            
+            <h2 class="text-2xl font-bold text-white mb-2">{{ trans.pay_title }}</h2>
+            <p class="text-slate-400 text-sm mb-4">{{ trans.pay_sub }}</p>
+
+            <div class="mb-3 text-left">
+                <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">Product</label>
+                <select id="pay-product" onchange="fetchDepositAddress()" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none">
+                    <option value="single_check">1 check — $1</option>
+                    <option value="pack_10">10 checks — $7 ($0.70/check · Save 30%)</option>
+                    <option value="pack_20" selected>20 checks — $10 ($0.50/check · BEST VALUE +10 for +$3)</option>
+                    <option value="balance">Custom USDT top-up</option>
+                </select>
+            </div>
+            <div class="mb-3 text-left">
+                <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">Payment method</label>
+                <select id="pay-method" onchange="onPayMethodChange()" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none">
+                    <option value="crypto_usdt">USDT (TRC-20 / ETH)</option>
+                    <option value="sbp" disabled>СБП (RUB) — soon</option>
+                    <option value="card_rub" disabled>Card (RUB) — soon</option>
+                    <option value="telegram_stars" disabled>Telegram Stars — soon</option>
+                </select>
+                <p id="pay-method-hint" class="text-[10px] text-slate-500 mt-1">Crypto live now. SBP/card plug in later via same checkout API.</p>
+            </div>
+            <div id="crypto-pay-fields">
+            <div class="mb-4 text-left">
+                <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">{{ trans.pay_chain_label }}</label>
+                <select id="pay-chain" onchange="fetchDepositAddress()" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition-all appearance-none cursor-pointer">
+                    <option value="TRON">Tron (TRC20)</option>
+                    <option value="ETH">Ethereum (ERC20)</option>
+                </select>
+            </div>
+
+            <p id="pay-pool-hint" class="text-[10px] text-cyan-500/80 mb-2 text-left">Deposit from 10-address pool — assigned on open</p>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6 break-all font-mono text-xs text-slate-300 relative group flex items-center justify-between">
+                <span id="pay-address">—</span>
+                <button onclick="copyPayAddress()" class="text-slate-500 hover:text-white p-2 transition-colors" title="Copy">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+            </div>
+            
+            <div class="mb-6 text-left">
+                <label class="block text-slate-400 text-xs uppercase font-bold mb-1 tracking-wider">{{ trans.pay_hash_label }}</label>
+                <input type="text" id="pay-hash" class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none transition-all placeholder-slate-600 font-mono text-sm" placeholder="0x... or T...">
+            </div>
+            
+            </div>
+            <button onclick="handlePayment()" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg text-white font-bold shadow-lg hover:shadow-cyan-500/40 transition transform active:scale-[0.98]">
+                {{ trans.pay_verify_btn }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-3 sm:p-4">
+        <div class="glass-card p-4 sm:p-6 md:p-8 rounded-2xl w-full max-w-[min(56rem,calc(100vw-1.5rem))] relative border border-slate-700/50 shadow-2xl flex flex-col max-h-[min(90vh,860px)] overflow-hidden">
+            <button type="button" onclick="toggleProfileModal()" class="absolute top-3 right-3 z-10 p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800/80 transition-colors" aria-label="Close">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5 pr-8 shrink-0">
+                <div class="min-w-0">
+                    <h2 class="text-xl sm:text-2xl font-bold text-white mb-1">{{ trans.profile_title }}</h2>
+                    <p id="profile-email" class="text-slate-400 text-sm truncate"></p>
+                </div>
+                <div class="sm:text-right shrink-0">
+                    <div class="text-sm text-slate-400">{{ trans.balance }}</div>
+                    <div id="profile-balance" class="text-2xl sm:text-3xl font-bold text-cyan-400 font-mono">$0.00</div>
+                    <button type="button" onclick="document.getElementById('profile-modal').classList.add('hidden'); openTopUp();" class="mt-2 text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                        + {{ trans.pay_title }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-5 pr-0.5">
+                <!-- Referral -->
+                <section class="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4 sm:p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div class="min-w-0">
+                            <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                {{ trans.profile_ref_title }}
+                            </h3>
+                            <p class="text-xs text-slate-400">{{ trans.profile_ref_link }}</p>
+                        </div>
+                        <div class="flex gap-4 sm:text-right">
+                            <div>
+                                <div class="text-xs text-slate-400">{{ trans.profile_ref_invited }}</div>
+                                <div id="profile-ref-count" class="text-xl font-bold text-indigo-400 font-mono">0</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-400">{{ trans.profile_ref_earned }}</div>
+                                <div id="profile-ref-earnings" class="text-base font-bold text-cyan-300 font-mono">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2 min-w-0">
+                        <div class="bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-slate-300 font-mono text-xs sm:text-sm flex-1 min-w-0 truncate" id="profile-ref-code">LOADING...</div>
+                        <button type="button" onclick="copyRefLink()" class="shrink-0 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition">
+                            {{ trans.profile_ref_copy }}
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Monitors -->
+                <section>
+                    <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        Monitored wallets
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-2">We recheck periodically and Telegram you if risk changes (login via Telegram for alerts).</p>
+                    <div id="monitors-list" class="bg-slate-900/30 rounded-xl border border-slate-800 p-3 text-sm text-slate-400 min-h-[52px]">
+                        No monitors yet — check a wallet and tap Monitor.
+                    </div>
+                </section>
+
+                <!-- Histories -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                    <section class="flex flex-col min-h-0">
+                        <h3 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            {{ trans.profile_checks }}
+                        </h3>
+                        <div class="overflow-x-auto overflow-y-auto max-h-48 custom-scrollbar bg-slate-900/30 rounded-xl border border-slate-800">
+                            <table class="w-full text-left text-xs min-w-[280px]">
+                                <thead class="sticky top-0 bg-slate-900 z-10 text-slate-500 font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th class="p-3">{{ trans.col_date }}</th>
+                                        <th class="p-3">{{ trans.col_address }}</th>
+                                        <th class="p-3">{{ trans.col_risk }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-checks-body" class="text-slate-300 divide-y divide-slate-800/50"></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="flex flex-col min-h-0">
+                        <h3 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            {{ trans.profile_history }}
+                        </h3>
+                        <div class="overflow-x-auto overflow-y-auto max-h-48 custom-scrollbar bg-slate-900/30 rounded-xl border border-slate-800">
+                            <table class="w-full text-left text-xs min-w-[260px]">
+                                <thead class="sticky top-0 bg-slate-900 z-10 text-slate-500 font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th class="p-3">{{ trans.col_date }}</th>
+                                        <th class="p-3">{{ trans.col_amount }}</th>
+                                        <th class="p-3">{{ trans.col_status }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-payments-body" class="text-slate-300 divide-y divide-slate-800/50"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-slate-800 flex justify-end shrink-0">
+                <button type="button" onclick="logout()" class="text-red-400 hover:text-red-300 font-medium text-sm flex items-center gap-2 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    {{ trans.profile_logout }}
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Inject Translations for JS
-        const TRANS = {{ trans | tojson }};
+        const TRANS = JSON.parse(document.body.dataset.trans);
+        let currentUser = null;
+        let isLoginMode = true;
+        let PAYMENT_ADDRESSES = {
+            TRON: "TJ8c14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+            ETH: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+            
+        };
+
+        // Check auth on load
+        async function initAuth() {
+            const token = localStorage.getItem('token');
+            if(token) {
+                try {
+                    const res = await fetch('/auth/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if(res.ok) {
+                        currentUser = await res.json();
+                        updateAuthUI();
+                    } else {
+                        // Keep silent on auth fail to not annoy user
+                        // logout(); 
+                    }
+                } catch(e) {
+                    // logout();
+                }
+            }
+        }
+        
+        // --- Custom Dropdown Logic ---
+        function toggleChainMenu(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('chain-menu');
+            const arrow = document.getElementById('chain-arrow');
+            menu.classList.toggle('hidden');
+            if(!menu.classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function selectChain(value, label, iconHtml) {
+            const ICONS = {
+                "ETH": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg",
+                "TRON": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/trx.svg",
+                "BTC": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/btc.svg",
+                "BSC": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/bnb.svg",
+                "TON": "/static/icons/ton.png",
+                "SOL": "/static/icons/sol.png",
+                "POLYGON": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/matic.svg",
+                "AVAX": "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/avax.svg"
+            };
+            // Update hidden input
+            document.getElementById('chain').value = value;
+            
+            // Update Display
+            const display = document.getElementById('selected-chain-display');
+            if (display) {
+                display.innerHTML = `
+                <div class="w-6 h-6 rounded-full bg-white/10 p-1 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform" id="chain-icon-container">
+                    <img src="${ICONS[value] || ICONS['ETH']}" class="w-full h-full object-contain rounded-full" alt="${value}">
+                </div>
+                <span class="text-sm tracking-wide">${label}</span>
+            `;
+            }
+
+            document.querySelectorAll('#mobile-chain-chips .chain-btn').forEach(btn => {
+                const on = btn.dataset.chain === value;
+                btn.classList.toggle('bg-slate-800', on);
+                btn.classList.toggle('text-white', on);
+                btn.classList.toggle('shadow-sm', on);
+                btn.classList.toggle('text-slate-400', !on);
+                btn.classList.toggle('active', on);
+            });
+            
+            // Close menu
+            const menu = document.getElementById('chain-menu');
+            const arrow = document.getElementById('chain-arrow');
+            if (menu) menu.classList.add('hidden');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+
+        function setDemoWallet() {
+            document.getElementById('address').value = '0x53b6936513e738f44fb50d2b9476730c0ab3bfc1';
+            selectChain('ETH', 'Ethereum');
+        }
+
+        function openTopUp() {
+            if (!currentUser) {
+                toggleAuthModal();
+                return;
+            }
+            const modal = document.getElementById('pay-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            fetchDepositAddress();
+        }
+
+        function closeTopUp() {
+            const modal = document.getElementById('pay-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function enterCheckingMode() {
+            const hero = document.getElementById('search-hero');
+            const landing = document.getElementById('landing-extra');
+            if (hero) hero.classList.add('hidden');
+            if (landing) landing.classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('download-section').classList.add('hidden');
+        }
+
+        function resetCheckView() {
+            const hero = document.getElementById('search-hero');
+            const landing = document.getElementById('landing-extra');
+            if (hero) hero.classList.remove('hidden');
+            if (landing) landing.classList.remove('hidden');
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('download-section').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function goHomeNav() { resetCheckView(); }
+
+        function openHistoryNav() {
+            if (!currentUser) { toggleAuthModal(); return; }
+            Promise.resolve(toggleProfileModal()).then(() => {
+                const el = document.getElementById('history-checks-body');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        }
+
+        function openProfileNav() {
+            if (!currentUser) { toggleAuthModal(); return; }
+            toggleProfileModal();
+        }
+
+        // Do not overwrite chain menu icons — static HTML already has correct assets.
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('chain-menu');
+            const selector = document.getElementById('chain-selector');
+            const arrow = document.getElementById('chain-arrow');
+            
+            if (selector && !selector.contains(e.target) && menu && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+                if(arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        });
+        // -----------------------------
+
+        function updateAuthUI() {
+            const btn = document.getElementById('auth-btn');
+            const text = document.getElementById('auth-text');
+            const pill = document.getElementById('header-balance-pill');
+            const bal = document.getElementById('header-balance');
+            if(currentUser) {
+                text.innerText = (currentUser.email || 'User').split('@')[0];
+                btn.onclick = toggleProfileModal;
+                if (pill) {
+                    pill.classList.remove('hidden');
+                    pill.classList.add('flex');
+                }
+                if (bal) bal.innerText = `$${Number(currentUser.balance || 0).toFixed(2)}`;
+            } else {
+                text.innerText = TRANS.auth_signin;
+                btn.onclick = toggleAuthModal;
+                if (pill) {
+                    pill.classList.add('hidden');
+                    pill.classList.remove('flex');
+                }
+            }
+        }
+
+        async function toggleProfileModal() {
+            const modal = document.getElementById('profile-modal');
+            const isHidden = modal.classList.contains('hidden');
+            
+            if (isHidden) {
+                // Open
+                modal.classList.remove('hidden');
+                document.getElementById('profile-email').innerText = currentUser.email;
+                document.getElementById('profile-balance').innerText = `$${currentUser.balance.toFixed(2)}`;
+                
+                // Referral Info
+                if(currentUser.referral_code) {
+                    const refLink = `${window.location.origin}?ref=${currentUser.referral_code}`;
+                    document.getElementById('profile-ref-code').innerText = refLink;
+                    document.getElementById('profile-ref-count').innerText = currentUser.referral_count || 0;
+                    document.getElementById('profile-ref-earnings').innerText = `$${(currentUser.referral_earnings || 0).toFixed(2)}`;
+                }
+
+                await loadHistory();
+                await loadMonitors();
+            } else {
+                // Close
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function loadMonitors() {
+            const token = localStorage.getItem('token');
+            const el = document.getElementById('monitors-list');
+            if (!token || !el) return;
+            try {
+                const res = await fetch('/auth/monitors', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) return;
+                const data = await res.json();
+                const list = data.monitors || [];
+                if (!list.length) {
+                    el.innerHTML = 'No monitors yet — check a wallet and tap Monitor.';
+                    return;
+                }
+                el.innerHTML = list.map(m => {
+                    const name = m.label || (m.address.slice(0, 8) + '…');
+                    const lvl = m.last_level || '—';
+                    const sc = m.last_score != null ? m.last_score : '—';
+                    return `<div class="flex items-center justify-between gap-2 py-2 border-b border-slate-800 last:border-0">
+                        <div class="min-w-0">
+                            <div class="text-white font-medium truncate">${name} <span class="text-slate-500 text-xs">${m.chain}</span></div>
+                            <div class="text-[10px] font-mono text-slate-500 truncate">${m.address}</div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-xs font-bold text-cyan-300">${lvl} ${sc}</span>
+                            <button onclick="removeMonitor(${m.id})" class="text-slate-500 hover:text-red-400 text-xs">✕</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {}
+        }
+
+        async function removeMonitor(id) {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            await fetch('/auth/monitors/' + id, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            await loadMonitors();
+        }
+
+        async function monitorCurrent() {
+            const token = localStorage.getItem('token');
+            if (!token) { toggleAuthModal(); return; }
+            if (!lastCheckData) return alert('Run a check first');
+            const label = prompt('Label for address book (optional)', '') || '';
+            try {
+                const res = await fetch('/auth/monitors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        address: lastCheckData.address || document.getElementById('address').value,
+                        chain: lastCheckData.chain || document.getElementById('chain').value,
+                        label: label.trim() || null,
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed');
+                const m = data.monitor || {};
+                alert(`Monitoring ${m.label || m.address}\n${m.last_level || ''} ${m.last_score != null ? m.last_score : ''}\nAlerts via Telegram if you logged in with TG.`);
+            } catch (e) {
+                alert(e.message || 'Monitor failed');
+            }
+        }
+
+        async function loadHistory() {
+            const token = localStorage.getItem('token');
+            if(!token) return;
+
+            try {
+                const res = await fetch('/auth/history', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    renderHistory(data);
+                }
+            } catch(e) {
+                console.error("Failed to load history", e);
+            }
+        }
+
+        function renderHistory(data) {
+            // Render Payments
+            const payBody = document.getElementById('history-payments-body');
+            payBody.innerHTML = "";
+            if(data.payments && data.payments.length > 0) {
+                data.payments.forEach(p => {
+                    const date = new Date(p.created_at).toLocaleDateString();
+                    const statusClass = p.status === 'completed' ? 'text-green-400' : 'text-yellow-400';
+                    const row = `
+                        <tr>
+                            <td class="p-3 text-slate-400">${date}</td>
+                            <td class="p-3 font-mono text-white">$${p.amount.toFixed(2)}</td>
+                            <td class="p-3 ${statusClass} font-bold text-[10px] uppercase">${p.status}</td>
+                        </tr>
+                    `;
+                    payBody.innerHTML += row;
+                });
+            } else {
+                payBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">${TRANS.no_history}</td></tr>`;
+            }
+
+            // Render Checks
+            const checkBody = document.getElementById('history-checks-body');
+            checkBody.innerHTML = "";
+            if(data.checks && data.checks.length > 0) {
+                data.checks.forEach(c => {
+                    const date = new Date(c.created_at).toLocaleDateString();
+                    let riskColor = "text-green-400";
+                    if(c.risk_score > 75) riskColor = "text-red-400";
+                    else if(c.risk_score > 40) riskColor = "text-yellow-400";
+
+                    const row = `
+                        <tr class="hover:bg-slate-800/30 transition cursor-pointer" onclick="loadPastCheck('${c.chain}', '${c.address}')">
+                            <td class="p-3 text-slate-400">${date}</td>
+                            <td class="p-3 font-mono text-cyan-400 text-[10px] break-all">
+                                <span class="text-slate-500 mr-1">[${c.chain}]</span> ${c.address}
+                            </td>
+                            <td class="p-3 ${riskColor} font-bold">${c.risk_score}</td>
+                        </tr>
+                    `;
+                    checkBody.innerHTML += row;
+                });
+            } else {
+                checkBody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">${TRANS.no_history}</td></tr>`;
+            }
+        }
+        
+        function loadPastCheck(chain, address) {
+            document.getElementById('profile-modal').classList.add('hidden');
+            document.getElementById('chain').value = chain;
+            document.getElementById('address').value = address;
+            checkWallet();
+        }
+
+        function toggleAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            modal.classList.toggle('hidden');
+            document.getElementById('auth-error').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('auth-title');
+            const subtitle = document.getElementById('auth-subtitle');
+            const switchText = document.getElementById('auth-switch-text');
+            const switchBtn = document.getElementById('auth-switch-btn');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const refDiv = document.getElementById('auth-ref-div');
+
+            if (isLoginMode) {
+                title.innerText = TRANS.auth_signin;
+                subtitle.innerText = TRANS.auth_subtitle;
+                switchText.innerText = TRANS.auth_new_user;
+                switchBtn.innerText = TRANS.auth_create;
+                submitBtn.innerText = TRANS.auth_continue;
+                refDiv.classList.add('hidden');
+            } else {
+                title.innerText = TRANS.auth_create;
+                subtitle.innerText = TRANS.auth_create_sub;
+                switchText.innerText = TRANS.auth_has_account;
+                switchBtn.innerText = TRANS.auth_signin;
+                submitBtn.innerText = TRANS.auth_join_free;
+                refDiv.classList.remove('hidden');
+            }
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            const referralCode = document.getElementById('referral-code').value;
+            
+            const endpoint = isLoginMode ? '/auth/token' : '/auth/register';
+            const errorDiv = document.getElementById('auth-error');
+            
+            let body = { email, password };
+            if (!isLoginMode && referralCode) {
+                body.referral_code = referralCode;
+            }
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("Server Error: " + (text.substring(0, 100) || "Unknown error"));
+                }
+                
+                if (!res.ok) {
+                    const detail = data.detail;
+                    const msg = typeof detail === 'string' ? detail
+                        : (Array.isArray(detail) ? detail.map(d => d.msg || d).join('; ') : (detail && JSON.stringify(detail)) || "Authentication failed");
+                    throw new Error(msg);
+                }
+                
+                localStorage.setItem('token', data.access_token);
+                toggleAuthModal();
+                await initAuth();
+                
+            } catch(err) {
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function copyRefLink() {
+            const code = document.getElementById('profile-ref-code').innerText;
+            navigator.clipboard.writeText(code);
+            alert("Link copied!");
+        }
+
+        // Auto-fill referral code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        if(refCode) {
+            // If user not logged in, maybe show register modal automatically?
+            // For now just store it or pre-fill if modal opens
+            setTimeout(() => {
+                const refInput = document.getElementById('referral-code');
+                if(refInput) refInput.value = refCode;
+                
+                if(!currentUser) {
+                    toggleAuthModal();
+                    toggleAuthMode(); // Switch to register
+                }
+            }, 500);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            currentUser = null;
+            document.getElementById('profile-modal').classList.add('hidden');
+            // Force reload to clear state and fix freeze
+            window.location.reload();
+        }
+
+        async function fetchDepositAddress() {
+            const token = localStorage.getItem('token');
+            const chain = document.getElementById('pay-chain').value;
+            const product = document.getElementById('pay-product').value;
+            const addrEl = document.getElementById('pay-address');
+            const hint = document.getElementById('pay-pool-hint');
+            if (!token) {
+                updatePayAddress();
+                return;
+            }
+            addrEl.innerText = '…';
+            try {
+                const res = await fetch('/payments/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ product, method: 'crypto_usdt', chain })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Could not assign deposit address');
+                const inst = data.instructions || {};
+                addrEl.innerText = inst.address || '—';
+                const slot = inst.pool_slot ? `slot ${inst.pool_slot}` : 'pool';
+                hint.innerText = `Assigned ${slot} · sender screened before credit · daily pre-sweep check`;
+            } catch (e) {
+                updatePayAddress();
+                hint.innerText = (e.message || 'Pool unavailable') + ' — fallback address';
+            }
+        }
+
+        function updatePayAddress() {
+            const chain = document.getElementById('pay-chain').value;
+            const addrEl = document.getElementById('pay-address');
+            addrEl.innerText = PAYMENT_ADDRESSES[chain] || PAYMENT_ADDRESSES.ETH || '—';
+        }
+
+        function copyPayAddress() {
+            const addr = document.getElementById('pay-address').innerText;
+            navigator.clipboard.writeText(addr);
+            alert("Address copied!");
+        }
+
+        let lastCheckData = null;
+        let paymentCatalog = null;
+
+        function onPayMethodChange() {
+            const method = document.getElementById('pay-method').value;
+            const cryptoFields = document.getElementById('crypto-pay-fields');
+            const hint = document.getElementById('pay-method-hint');
+            if (method === 'crypto_usdt') {
+                cryptoFields.classList.remove('hidden');
+                hint.innerText = 'Send USDT, then paste tx hash.';
+            } else {
+                cryptoFields.classList.add('hidden');
+                hint.innerText = 'This method is wired in API (/payments) but not live yet — use USDT for now.';
+            }
+        }
+
+        async function handlePayment() {
+            const token = localStorage.getItem('token');
+            if(!token) return;
+            const method = document.getElementById('pay-method').value;
+            const product = document.getElementById('pay-product').value;
+            if (method !== 'crypto_usdt') {
+                alert('СБП / карта / Stars скоро. Сейчас доступен USDT. API уже готов к подключению.');
+                return;
+            }
+            const chain = document.getElementById('pay-chain').value;
+            const txHashInput = document.getElementById('pay-hash');
+            const txHash = txHashInput.value.trim();
+            if(!txHash) return alert(TRANS.pay_hash_label);
+            try {
+                const res = await fetch('/payments/confirm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ method, product, chain, tx_hash: txHash })
+                });
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.detail || 'Payment failed');
+                if (currentUser) {
+                    currentUser.balance = data.new_balance;
+                    currentUser.check_credits = data.check_credits;
+                }
+                updateAuthUI();
+                document.getElementById('pay-modal').classList.add('hidden');
+                document.getElementById('pay-modal').classList.remove('flex');
+                closeTopUp();
+                alert(`${TRANS.pay_success} balance $${Number(data.new_balance||0).toFixed(2)} · credits ${data.check_credits||0}`);
+                txHashInput.value = '';
+            } catch(e) {
+                alert(e.message || TRANS.pay_failed);
+            }
+        }
+
+        async function loadPaymentConfig() {
+            try {
+                const res = await fetch('/payments/methods');
+                const legacy = await fetch('/auth/payment/config');
+                if (legacy.ok) {
+                    const data = await legacy.json();
+                    if (data.addresses) PAYMENT_ADDRESSES = data.addresses;
+                    updatePayAddress();
+                }
+                if (res.ok) paymentCatalog = await res.json();
+            } catch (e) {}
+        }
+
+        function autoDetectChain() {
+            const el = document.getElementById('address');
+            const q = (el.value || '').trim();
+            if (q.length < 8) return;
+
+            const labels = {
+                ETH: 'Ethereum',
+                BSC: 'BNB Smart Chain',
+                TON: 'The Open Network',
+                SOL: 'Solana',
+                TRON: 'Tron',
+                BTC: 'Bitcoin'
+            };
+
+            let detected = null;
+            if (/^T[1-9A-HJ-NP-za-km-z]{33}$/.test(q)) {
+                detected = 'TRON';
+            } else if (/^0x[0-9a-fA-F]{40}$/.test(q)) {
+                detected = (selectedChain === 'BSC') ? 'BSC' : 'ETH';
+            } else if (/^(EQ|UQ|kQ|0Q)[0-9a-zA-Z_-]{46}$/.test(q)) {
+                detected = 'TON';
+            } else if (/^[1-9A-HJ-NP-za-km-z]{32,44}$/.test(q) && !q.startsWith('T') && !q.startsWith('1') && !q.startsWith('3')) {
+                detected = 'SOL';
+            } else if (/^(1|3|bc1)[a-zA-HJ-NP-Z0-9]{25,62}$/.test(q)) {
+                detected = 'BTC';
+            }
+
+            if (detected) {
+                if (detected !== selectedChain) {
+                    selectChain(detected, labels[detected] || detected);
+                }
+                return;
+            }
+
+            // Fallback: query /detect endpoint asynchronously
+            fetch('/detect?q=' + encodeURIComponent(q))
+                .then(res => res.ok ? res.json() : null)
+                .then(d => {
+                    const chain = d && d.chain;
+                    if ((d.kind === 'address' || d.kind === 'txid') && chain && chain !== selectedChain) {
+                        selectChain(chain, labels[chain] || chain);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function shareCurrentResult() {
+            const token = lastCheckData && lastCheckData.share_token;
+            if (!token) { alert('Share link unavailable for this result'); return; }
+            shareResult(token);
+        }
+        function disputeCurrent() {
+            if (!lastCheckData) return;
+            disputeResult(lastCheckData.address, lastCheckData.chain, lastCheckData.check_id);
+        }
+
+        // Initialize
+        initAuth();
+        loadPaymentConfig();
+
+        let _checkAbort = null;
+        let _checkSeq = 0;
 
         async function checkWallet() {
             const chain = document.getElementById('chain').value;
@@ -296,52 +1649,213 @@
             
             if(!address) return alert(TRANS.placeholder_error);
 
-            document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('result').classList.add('hidden');
-            document.getElementById('download-section').classList.add('hidden');
+            if (_checkAbort) {
+                try { _checkAbort.abort(); } catch (e) {}
+            }
+            _checkAbort = new AbortController();
+            const seq = ++_checkSeq;
+            const signal = _checkAbort.signal;
+
+            enterCheckingMode();
+            const ctaEl = document.getElementById('signup-cta');
+            if (ctaEl) ctaEl.classList.add('hidden');
 
             try {
-                // Pass current lang if API needs it (optional, mainly for errors if implemented)
-                const res = await fetch(`/check?chain=${chain}&address=${address}`);
-                if (!res.ok) throw new Error(TRANS.server_error);
+                let res;
+                let usedFreeCheck = false;
+
+                if (currentUser) {
+                    // ── Logged-in user: use paid endpoint ──
+                    if (currentUser.balance < 1.00) {
+                        openTopUp();
+                        document.getElementById('loader').classList.add('hidden');
+                        const hero = document.getElementById('search-hero');
+                        if (hero) hero.classList.remove('hidden');
+                        return;
+                    }
+                    const token = localStorage.getItem('token');
+                    res = await fetch(`/check?chain=${chain}&address=${address}`, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        signal,
+                    });
+                } else {
+                    // ── Anonymous user: use free endpoint ──
+                    res = await fetch(`/check-free?chain=${chain}&address=${address}`, { signal });
+                    usedFreeCheck = true;
+                }
+
+                if (seq !== _checkSeq) return;
+
+                if (res.status === 429) {
+                    // Free limit reached → show signup prompt
+                    document.getElementById('loader').classList.add('hidden');
+                    const hero = document.getElementById('search-hero');
+                    if (hero) hero.classList.remove('hidden');
+                    showFreeLimitModal();
+                    return;
+                }
+                
+                if (res.status === 401) {
+                    toggleAuthModal();
+                    document.getElementById('loader').classList.add('hidden');
+                    const hero = document.getElementById('search-hero');
+                    if (hero) hero.classList.remove('hidden');
+                    return;
+                }
+                
+                if (!res.ok) {
+                    const text = await res.text();
+                    let errorData = {};
+                    try { errorData = JSON.parse(text); } catch(e) {}
+                    throw new Error(errorData.detail || TRANS.server_error);
+                }
                 
                 const data = await res.json();
+                if (seq !== _checkSeq) return;
                 
                 if (data.chain_data && data.chain_data.error) {
                     throw new Error(data.chain_data.error);
                 }
                 
-                // Update UI
+                // ── Update UI with results (server risk_level is source of truth) ──
+                lastCheckData = data;
                 const score = data.risk_score;
+                const level = (data.risk_level || 'SAFE').toUpperCase();
                 document.getElementById('score-val').innerText = score;
-                
-                // Animate Circle
-                const circle = document.getElementById('score-circle');
-                const offset = 440 - (440 * score) / 100;
-                circle.style.strokeDashoffset = offset;
-                
-                // Risk Color & Text (Localized)
-                let color = "#10b981";
-                let levelText = TRANS.safe;
-                if(score > 75) { color = "#ef4444"; levelText = TRANS.critical; }
-                else if(score > 40) { color = "#f59e0b"; levelText = TRANS.warning; }
-                
-                circle.style.stroke = color;
-                const levelEl = document.getElementById('risk-level');
-                levelEl.innerText = levelText;
-                levelEl.className = `text-xs font-bold px-2 py-1 rounded mt-1 text-white`;
-                levelEl.style.backgroundColor = color;
 
-                // Data
-                document.getElementById('balance-val').innerText = data.chain_data.balance_display || "0";
-                document.getElementById('tx-count').innerText = data.chain_data.tx_count || "0";
-                
-                // Handle USDT specifically for TRON
-                if (data.chain_data.balance_usdt !== undefined && data.chain_data.balance_usdt > 0) {
-                    document.getElementById('usdt-row').classList.remove('hidden');
-                    document.getElementById('usdt-val').innerText = data.chain_data.balance_usdt.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const levelColors = { SAFE:'#10b981', CAUTION:'#eab308', WARNING:'#f59e0b', CRITICAL:'#ef4444' };
+                const color = levelColors[level] || '#10b981';
+
+                const circle = document.getElementById('score-circle');
+                const circ = 390; // 2π·62
+                circle.style.strokeDasharray = String(circ);
+                circle.style.strokeDashoffset = circ - (circ * score) / 100;
+                circle.style.stroke = color;
+
+                const pill = document.getElementById('score-level-pill');
+                if (pill) { pill.innerText = level; pill.style.backgroundColor = color; pill.className = 'text-xs font-bold px-2 py-1 rounded mt-1 text-white'; }
+
+                // Level in verdict; numeric score only in the circle (no SAFE — 0/100 duplicate)
+                const badge = document.getElementById('verdict-badge');
+                badge.innerText = level;
+                badge.style.color = color;
+
+                const verdict = data.verdict || {};
+                document.getElementById('verdict-summary').innerText = (verdict.why || []).slice(0,3).join(' · ') || (data.disclaimer || '');
+                document.getElementById('verdict-action').innerText = verdict.what_to_do || 'Ознакомьтесь с факторами риска ниже перед переводом.';
+
+                // CEX profile — always rewrite so a previous check cannot linger
+                const cex = verdict.cex_profile || {};
+                const cexBlock = document.getElementById('cex-safety-block');
+                if (cexBlock) {
+                    const cColor = cex.color || color;
+                    cexBlock.style.borderColor = cColor + '40';
+                    const cBadge = document.getElementById('cex-badge-pill');
+                    if (cBadge) {
+                        cBadge.style.backgroundColor = cColor + '18';
+                        cBadge.style.color = cColor;
+                        cBadge.style.borderColor = cColor + '40';
+                    }
+                    const cBadgeText = document.getElementById('cex-badge-text');
+                    if (cBadgeText) cBadgeText.innerText = cex.badge || level;
+                    const cHead = document.getElementById('cex-headline-text');
+                    if (cHead) {
+                        cHead.innerText = cex.headline || '';
+                        cHead.style.color = cColor;
+                    }
+                    const cAdv = document.getElementById('cex-advice-text');
+                    if (cAdv) cAdv.innerText = verdict.what_to_do || '';
+
+                    ['crit-sanctions','crit-tether','crit-assets','crit-attribution','crit-mixer','crit-dust'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) { el.innerText = '—'; el.className = 'text-xs font-semibold text-slate-400'; }
+                    });
+
+                    (cex.criteria || []).forEach(c => {
+                        let el = null;
+                        if (c.name.includes("Санкцион")) el = document.getElementById('crit-sanctions');
+                        else if (c.name.includes("Tether")) el = document.getElementById('crit-tether');
+                        else if (c.name.includes("Валидность") || c.name.includes("Fake")) el = document.getElementById('crit-assets');
+                        else if (c.name.includes("атрибуци") || c.name.includes("Прозрачность")) el = document.getElementById('crit-attribution');
+                        else if (c.name.includes("миксер")) el = document.getElementById('crit-mixer');
+                        else if (c.name.includes("пыл") || c.name.includes("Dusting")) el = document.getElementById('crit-dust');
+
+                        if (el) {
+                            el.innerText = (c.passed ? "✓ " : "✕ ") + c.note;
+                            el.className = `text-xs font-semibold ${c.passed ? 'text-emerald-400' : 'text-red-400 font-bold'}`;
+                        }
+                    });
+                }
+
+                const meta = data.scoring_meta || {};
+                const exp = Number(meta.exposure_pct_in_90d || 0);
+                const expBlock = document.getElementById('exposure-block');
+                if (exp > 0 || (meta.dust_filtered || 0) > 0) {
+                    expBlock.classList.remove('hidden');
+                    document.getElementById('exposure-bar').style.width = Math.min(100, exp) + '%';
+                    document.getElementById('exposure-label').innerText = `${exp}% inbound risk exposure` + (meta.dust_filtered ? ` · dust ignored: ${meta.dust_filtered}` : '');
                 } else {
-                    document.getElementById('usdt-row').classList.add('hidden');
+                    expBlock.classList.add('hidden');
+                }
+                const versions = data.list_versions || {};
+                document.getElementById('data-stamp').innerText = Object.keys(versions).length
+                    ? ('Data: ' + Object.entries(versions).map(([k,v]) => `${k} ${v}`).join(' · '))
+                    : (data.disclaimer || '');
+
+                // Asset overview — total + USDT + native (BTC: single balance)
+                const cd = data.chain_data || {};
+                const chainType = (data.chain || cd.type || document.getElementById('chain').value || '').toUpperCase();
+                const nativeSym = cd.balance_native_symbol
+                    || (chainType === 'TRON' ? 'TRX' : chainType === 'BTC' ? 'BTC' : chainType === 'BSC' ? 'BNB' : chainType === 'TON' ? 'TON' : chainType === 'SOL' ? 'SOL' : chainType === 'ETH' || chainType === 'EVM' ? 'ETH' : 'Coin');
+                const nativeBal = Number(cd.balance || 0);
+                const usdtBal = (cd.balance_usdt !== undefined && cd.balance_usdt !== null) ? Number(cd.balance_usdt) : null;
+                const fmtN = (n, d) => Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+
+                const nativeLabel = document.getElementById('native-label');
+                const totalRow = document.getElementById('balance-total-row');
+                const usdtRow = document.getElementById('usdt-row');
+                const nativeRow = document.getElementById('native-row');
+
+                if (chainType === 'BTC') {
+                    if (totalRow) totalRow.classList.add('hidden');
+                    if (usdtRow) usdtRow.classList.add('hidden');
+                    if (nativeLabel) nativeLabel.innerText = TRANS.balance || 'Balance';
+                    document.getElementById('balance-val').innerText = cd.balance_display || `${fmtN(nativeBal, 8)} BTC`;
+                } else {
+                    if (totalRow) totalRow.classList.remove('hidden');
+                    if (nativeLabel) nativeLabel.innerText = nativeSym;
+                    document.getElementById('balance-val').innerText = cd.balance_display || `${fmtN(nativeBal, 4)} ${nativeSym}`;
+                    if (usdtBal !== null) {
+                        usdtRow.classList.remove('hidden');
+                        document.getElementById('usdt-val').innerText = fmtN(usdtBal, 2);
+                        const parts = [];
+                        if (usdtBal > 0) parts.push(`${fmtN(usdtBal, 2)} USDT`);
+                        if (nativeBal > 0) parts.push(`${fmtN(nativeBal, nativeSym === 'TRX' ? 2 : 4)} ${nativeSym}`);
+                        document.getElementById('balance-total-val').innerText = parts.length ? parts.join(' + ') : `0 USDT + 0 ${nativeSym}`;
+                    } else {
+                        usdtRow.classList.add('hidden');
+                        document.getElementById('balance-total-val').innerText = cd.balance_display || `${fmtN(nativeBal, 4)} ${nativeSym}`;
+                    }
+                }
+
+                document.getElementById('tx-count').innerText = cd.tx_count || "0";
+                const txNote = document.getElementById('tx-count-note');
+                if (txNote) txNote.innerText = cd.tx_count_note || (cd.tx_count ? (TRANS.tx_count_sample || '') : '');
+                const balNote = document.getElementById('balance-note');
+                if (balNote) {
+                    const bits = [];
+                    if (cd.trc10_assets) bits.push(`${cd.trc10_assets} TRC-10`);
+                    if (cd.other_trc20_contracts) bits.push(`${cd.other_trc20_contracts} non-USDT TRC-20`);
+                    if (bits.length) {
+                        const zeroMoney = nativeBal === 0 && (!usdtBal || usdtBal === 0);
+                        balNote.textContent = zeroMoney
+                            ? `${bits.join(' · ')} — spam/airdrop tokens only (not counted as balance)`
+                            : bits.join(' · ');
+                        balNote.classList.remove('hidden');
+                    } else {
+                        balNote.textContent = '';
+                        balNote.classList.add('hidden');
+                    }
                 }
 
                 if(data.sanctions.is_sanctioned) {
@@ -363,8 +1877,32 @@
                     factorsDiv.classList.remove('hidden');
                     data.risk_factors.forEach(f => {
                         const li = document.createElement('li');
-                        li.className = "flex items-start bg-red-500/5 p-3 rounded border border-red-500/10";
-                        li.innerHTML = `<span class="font-bold text-red-400 mr-2">[${f.level}]</span> <span class="text-slate-300">${f.desc}</span>`;
+                        let borderColor = "border-red-500/10";
+                        let bgColor = "bg-red-500/5";
+                        let textColor = "text-red-400";
+                        
+                        if (f.level === "MEDIUM") {
+                            borderColor = "border-orange-500/10";
+                            bgColor = "bg-orange-500/5";
+                            textColor = "text-orange-400";
+                        } else if (f.level === "LOW" || f.level === "INFO") {
+                            borderColor = "border-blue-500/10";
+                            bgColor = "bg-blue-500/5";
+                            textColor = "text-blue-400";
+                        }
+
+                        li.className = `flex flex-col ${bgColor} p-4 rounded border ${borderColor} mb-3`;
+                        
+                        const srcLine = [f.source, f.source_date, f.confidence ? (f.confidence + ' confidence') : null, f.signal_type].filter(Boolean).join(' · ');
+                        li.innerHTML = `
+                            <div class="flex items-center mb-2 flex-wrap gap-2">
+                                <span class="font-bold ${textColor} text-sm px-2 py-0.5 rounded bg-black/20 border border-white/5">[${f.level}]</span> 
+                                <span class="text-slate-200 font-semibold">${f.desc || ''}</span>
+                            </div>
+                            <div class="text-xs text-slate-400 mb-1">${f.details || ''}</div>
+                            <div class="text-xs text-slate-500">${f.implication || ''}</div>
+                            ${srcLine ? `<div class="text-[10px] text-slate-500 mt-2 uppercase tracking-wide">${srcLine}</div>` : ''}
+                        `;
                         riskList.appendChild(li);
                     });
                 } else {
@@ -374,7 +1912,7 @@
                 // Graph
                 renderGraph(data.graph_data);
 
-                // Render Transactions Table
+                // Transactions Table
                 const tbody = document.getElementById('txTableBody');
                 tbody.innerHTML = '';
                 if (data.chain_data.tx_list && data.chain_data.tx_list.length > 0) {
@@ -399,64 +1937,539 @@
                 document.getElementById('result').classList.remove('hidden');
                 document.getElementById('download-section').classList.remove('hidden');
 
+                // ── Show registration CTA for anonymous users ──
+                if (usedFreeCheck && !currentUser) {
+                    showSignupCTA(data.free_checks_remaining);
+                }
+
             } catch(e) {
-                // Show error in UI instead of alert
+                if (e && e.name === 'AbortError') return;
                 const loader = document.getElementById('loader');
-                loader.classList.add('hidden');
-                loader.innerHTML = `
-                    <div class="text-red-500 font-bold mb-2">ERROR</div>
-                    <div class="text-slate-400 text-sm">${e.message}</div>
-                    <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-slate-800 rounded text-xs hover:bg-slate-700">RETRY</button>
-                `;
-                loader.classList.remove('hidden');
+                if (loader) loader.classList.add('hidden');
+                const hero = document.getElementById('search-hero');
+                if (hero) hero.classList.remove('hidden');
+                const landing = document.getElementById('landing-extra');
+                if (landing) landing.classList.remove('hidden');
+                alert(e.message || TRANS.server_error);
             }
         }
 
+        // ── Signup CTA after free check results ──
+        function showSignupCTA(remaining) {
+            let cta = document.getElementById('signup-cta');
+            if (!cta) {
+                cta = document.createElement('div');
+                cta.id = 'signup-cta';
+                document.getElementById('result').after(cta);
+            }
+            const remainText = remaining > 0
+                ? `У вас осталось <span class="text-cyan-400 font-bold">${remaining}</span> бесплатных проверок сегодня`
+                : `Вы использовали все бесплатные проверки`;
+            cta.className = 'max-w-4xl mx-auto mt-8 animate-fade-in-up';
+            cta.innerHTML = `
+                <div class="relative glass-card rounded-2xl p-8 border border-cyan-500/30 overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-indigo-500"></div>
+                    <div class="flex flex-col md:flex-row items-center gap-6">
+                        <div class="flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 flex items-center justify-center border border-cyan-500/30">
+                            <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </div>
+                        <div class="flex-grow text-center md:text-left">
+                            <h3 class="text-xl font-bold text-white mb-1">Зарегистрируйтесь — получите $1 на первую проверку</h3>
+                            <p class="text-slate-400 text-sm">${remainText}. Создайте аккаунт и получите <span class="text-cyan-400 font-bold">$1 бонус</span> + PDF-отчёты, история проверок и реферальная программа.</p>
+                        </div>
+                        <button onclick="toggleAuthModal(); document.getElementById('auth-switch-btn').click();" 
+                            class="flex-shrink-0 px-8 py-3 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-xl text-white font-bold text-lg shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition transform hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap">
+                            Создать аккаунт
+                        </button>
+                    </div>
+                </div>
+            `;
+            cta.classList.remove('hidden');
+        }
+
+        // ── Free limit modal ──
+        function showFreeLimitModal() {
+            let modal = document.getElementById('free-limit-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'free-limit-modal';
+                document.body.appendChild(modal);
+            }
+            modal.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4';
+            modal.innerHTML = `
+                <div class="glass-card p-8 rounded-2xl w-full max-w-md relative border border-cyan-500/30 shadow-2xl text-center">
+                    <button onclick="this.closest('#free-limit-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                    
+                    <div class="w-20 h-20 bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-cyan-500/30">
+                        <svg class="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-white mb-2">Пробные проверки на сегодня закончились</h2>
+                    <p class="text-slate-400 text-sm mb-6">Зарегистрируйтесь — <span class="text-cyan-400 font-bold">$1 бонус</span> на первую проверку и полный доступ к платформе</p>
+                    
+                    <div class="space-y-3 text-left mb-6">
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <svg class="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>$1 бонус при регистрации · дальше $1 / проверка</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <svg class="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>PDF-отчёты для комплаенса</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <svg class="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>История всех проверок</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-slate-300">
+                            <svg class="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Реферальная программа — 10% с приглашённых</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="this.closest('#free-limit-modal').classList.add('hidden'); toggleAuthModal(); setTimeout(() => { if(isLoginMode) toggleAuthMode(); }, 100);" 
+                        class="w-full py-4 bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-xl text-white font-bold text-lg shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition transform hover:scale-[1.02] active:scale-[0.98]">
+                        Создать аккаунт бесплатно
+                    </button>
+                    
+                    <p class="text-slate-500 text-xs mt-4">
+                        Уже есть аккаунт? 
+                        <button onclick="this.closest('#free-limit-modal').classList.add('hidden'); toggleAuthModal();" class="text-cyan-400 hover:text-cyan-300">Войти</button>
+                    </p>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        let _graphSelectedAddr = '';
+
+        function hideGraphNodePanel() {
+            const panel = document.getElementById('graph-node-panel');
+            if (panel) {
+                panel.classList.remove('is-open', 'is-sanctioned', 'is-floating');
+                panel.style.left = '';
+                panel.style.top = '';
+            }
+            _graphSelectedAddr = '';
+        }
+
+        function showGraphNodeDetail(d, renderedPos) {
+            if (!d) return;
+            const addr = d.full_label || d.id || '';
+            if (!addr || addr === '_empty') return;
+            _graphSelectedAddr = addr;
+            const panel = document.getElementById('graph-node-panel');
+            const stage = document.getElementById('graph-stage');
+            const roleEl = document.getElementById('graph-node-role');
+            const addrEl = document.getElementById('graph-node-addr');
+            const extraEl = document.getElementById('graph-node-extra');
+            const copyBtn = document.getElementById('graph-copy-btn');
+            if (!panel || !addrEl) return;
+
+            const role = d.is_you
+                ? (TRANS.graph_you_node || 'Checked wallet')
+                : (TRANS.graph_counterparty || 'Counterparty');
+            if (roleEl) roleEl.textContent = role + (d.type ? ` · ${d.type}` : '');
+            addrEl.textContent = addr;
+            addrEl.title = addr;
+            const bits = [];
+            if (d.entity) bits.push(d.entity);
+            if (d.source) bits.push(d.source);
+            if (d.is_sanctioned) bits.push('SANCTIONED');
+            if (extraEl) extraEl.textContent = bits.join(' · ');
+            panel.classList.toggle('is-sanctioned', !!d.is_sanctioned);
+            panel.classList.add('is-open');
+            if (copyBtn) {
+                copyBtn.classList.remove('copied');
+                copyBtn.title = TRANS.graph_copy || 'Copy';
+            }
+
+            // Float near the tapped node inside the graph (no page scroll needed)
+            if (renderedPos && stage) {
+                panel.classList.add('is-floating');
+                requestAnimationFrame(() => {
+                    const pw = panel.offsetWidth || 280;
+                    const ph = panel.offsetHeight || 70;
+                    let left = renderedPos.x - pw / 2;
+                    let top = renderedPos.y + 18;
+                    left = Math.max(8, Math.min(left, stage.clientWidth - pw - 8));
+                    if (top + ph > stage.clientHeight - 8) top = renderedPos.y - ph - 14;
+                    top = Math.max(8, Math.min(top, stage.clientHeight - ph - 8));
+                    panel.style.left = left + 'px';
+                    panel.style.top = top + 'px';
+                });
+            } else {
+                panel.classList.remove('is-floating');
+                panel.style.left = '';
+                panel.style.top = '';
+            }
+        }
+
+        function copyGraphNodeAddress() {
+            if (!_graphSelectedAddr) return;
+            navigator.clipboard.writeText(_graphSelectedAddr).catch(() => {});
+            const copyBtn = document.getElementById('graph-copy-btn');
+            if (copyBtn) {
+                copyBtn.classList.add('copied');
+                copyBtn.title = TRANS.graph_copied || 'Copied';
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.title = TRANS.graph_copy || 'Copy';
+                }, 1600);
+            }
+            const metaEl = document.getElementById('graph-meta');
+            if (metaEl) metaEl.innerText = `${TRANS.graph_copied || 'Copied'}: ${_graphSelectedAddr}`;
+        }
+
         function renderGraph(elements) {
-            cytoscape({
-                container: document.getElementById('cy'),
-                elements: elements,
-                style: [
-                    {
-                        selector: 'node',
-                        style: {
-                            'background-color': 'data(color)',
-                            'label': 'data(label)',
-                            'color': '#cbd5e1',
-                            'font-size': 10,
-                            'text-valign': 'bottom',
-                            'text-margin-y': 5
-                        }
-                    },
-                    {
-                        selector: 'edge',
-                        style: {
-                            'width': 2,
-                            'line-color': '#475569',
-                            'target-arrow-color': '#475569',
-                            'target-arrow-shape': 'triangle',
-                            'curve-style': 'bezier',
-                            'label': 'data(label)',
-                            'color': '#64748b',
-                            'font-size': 8,
-                            'text-background-opacity': 1,
-                            'text-background-color': '#0f172a',
-                            'text-background-padding': 2
-                        }
+            const container = document.getElementById('cy');
+            const metaEl = document.getElementById('graph-meta');
+            const statusEl = document.getElementById('graph-chip-status');
+            const alertEl = document.getElementById('graph-chip-alert');
+            const stepEl = document.getElementById('graph-chip-step');
+            const skipBtn = document.getElementById('graph-skip-btn');
+            if (!container) return;
+
+            if (window._graphRevealTimer) {
+                clearTimeout(window._graphRevealTimer);
+                window._graphRevealTimer = null;
+            }
+            hideGraphNodePanel();
+            if (window._cyGraph) {
+                try { window._cyGraph.destroy(); } catch (e) {}
+                window._cyGraph = null;
+            }
+
+            const nodes = ((elements && elements.nodes) || []).map(n => ({
+                data: { ...(n.data || n) }
+            }));
+            const edges = ((elements && elements.edges) || []).map(e => ({
+                data: { ...(e.data || e) }
+            }));
+            const meta = (elements && elements.meta) || {};
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const sanctionedCount = (meta.sanctioned_nodes || 0) || nodes.filter(n => n.data && n.data.is_sanctioned).length;
+
+            if (metaEl) {
+                const bits = [];
+                if (meta.counterparties != null) bits.push(`${meta.counterparties} ${TRANS.graph_counterparties || 'counterparties'}`);
+                if (meta.flows != null) bits.push(`${meta.flows} ${TRANS.graph_flows || 'flows'}`);
+                if (meta.sample_in != null) bits.push(`${TRANS.graph_in_vol || 'in≈'}${meta.sample_in}`);
+                if (meta.sample_out != null) bits.push(`${TRANS.graph_out_vol || 'out≈'}${meta.sample_out}`);
+                if (meta.truncated) {
+                    const topTpl = TRANS.graph_top_of || 'top {n} of {total}';
+                    bits.push(topTpl.replace('{n}', meta.counterparties).replace('{total}', meta.total_counterparties_in_sample));
+                }
+                if (sanctionedCount) {
+                    bits.push((TRANS.graph_sanctioned_n || '{n} sanctioned').replace('{n}', sanctionedCount));
+                }
+                metaEl.innerText = bits.join(' · ') || (TRANS.graph_hover || 'Tap a node to copy the full address');
+            }
+            if (alertEl) {
+                if (sanctionedCount > 0) {
+                    alertEl.textContent = (TRANS.graph_sanctioned_n || '{n} sanctioned').replace('{n}', sanctionedCount);
+                    alertEl.classList.add('is-alert');
+                    alertEl.classList.remove('hidden');
+                } else {
+                    alertEl.classList.add('hidden');
+                    alertEl.classList.remove('is-alert');
+                }
+            }
+
+            const style = [
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': 'data(color)',
+                        'background-opacity': 0.78,
+                        'label': 'data(label)',
+                        'color': '#f1f5f9',
+                        'font-size': 11,
+                        'font-weight': 600,
+                        'text-valign': 'bottom',
+                        'text-margin-y': 10,
+                        'text-outline-width': 3,
+                        'text-outline-color': '#070b14',
+                        'text-outline-opacity': 0.85,
+                        'width': 'mapData(size, 30, 80, 40, 96)',
+                        'height': 'mapData(size, 30, 80, 40, 96)',
+                        'border-width': 2.5,
+                        'border-color': 'rgba(255,255,255,0.55)',
+                        'border-opacity': 0.85,
+                        'overlay-padding': 8,
+                        'underlay-color': 'data(color)',
+                        'underlay-padding': 10,
+                        'underlay-opacity': 0.22,
+                        'underlay-shape': 'ellipse',
+                        'transition-property': 'opacity, width, height, underlay-opacity',
+                        'transition-duration': '280ms',
+                        'opacity': 1,
                     }
-                ],
+                },
+                {
+                    selector: 'node[?is_you]',
+                    style: {
+                        'background-color': '#67e8f9',
+                        'background-opacity': 0.82,
+                        'border-width': 3,
+                        'border-color': 'rgba(255,255,255,0.75)',
+                        'color': '#a5f3fc',
+                        'font-size': 12,
+                        'z-index': 10,
+                        'underlay-color': '#22d3ee',
+                        'underlay-padding': 14,
+                        'underlay-opacity': 0.4,
+                    }
+                },
+                {
+                    selector: 'node[?is_sanctioned]',
+                    style: {
+                        'background-color': '#ff1f1f',
+                        'background-opacity': 0.9,
+                        'border-width': 3,
+                        'border-color': '#fecaca',
+                        'color': '#fee2e2',
+                        'z-index': 9,
+                        'underlay-color': '#ff0000',
+                        'underlay-padding': 16,
+                        'underlay-opacity': 0.55,
+                    }
+                },
+                {
+                    selector: 'node[?is_you][?is_sanctioned]',
+                    style: {
+                        'background-color': '#ff1f1f',
+                        'background-opacity': 0.92,
+                        'border-width': 4,
+                        'border-color': '#67e8f9',
+                        'color': '#fecaca',
+                        'z-index': 11,
+                        'underlay-color': '#ff0000',
+                        'underlay-padding': 18,
+                        'underlay-opacity': 0.6,
+                    }
+                },
+                {
+                    selector: 'node.dim',
+                    style: { 'opacity': 0.12, 'underlay-opacity': 0 }
+                },
+                {
+                    selector: 'node.hidden-reveal',
+                    style: { 'opacity': 0, 'width': 1, 'height': 1, 'underlay-opacity': 0 }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 2.4,
+                        'line-color': 'data(color)',
+                        'target-arrow-color': 'data(color)',
+                        'target-arrow-shape': 'triangle',
+                        'arrow-scale': 0.95,
+                        'curve-style': 'bezier',
+                        'opacity': 0.8,
+                        'label': 'data(label)',
+                        'color': '#94a3b8',
+                        'font-size': 8,
+                        'text-rotation': 'autorotate',
+                        'text-background-opacity': 0.85,
+                        'text-background-color': '#070b14',
+                        'text-background-padding': 2,
+                        'transition-property': 'opacity, width',
+                        'transition-duration': '240ms',
+                    }
+                },
+                {
+                    selector: 'edge[?hot]',
+                    style: {
+                        'width': 3.4,
+                        'line-color': '#ff2d2d',
+                        'target-arrow-color': '#ff2d2d',
+                        'opacity': 1,
+                    }
+                },
+                {
+                    selector: 'edge.dim',
+                    style: { 'opacity': 0.08 }
+                },
+                {
+                    selector: 'edge.hidden-reveal',
+                    style: { 'opacity': 0 }
+                },
+            ];
+
+            window._cyGraph = cytoscape({
+                container,
+                elements: { nodes, edges },
+                style,
                 layout: {
-                    name: 'concentric',
-                    minNodeSpacing: 50
+                    name: 'cose',
+                    animate: false,
+                    padding: 48,
+                    nodeRepulsion: 18000,
+                    idealEdgeLength: 130,
+                    gravity: 0.75,
+                },
+                wheelSensitivity: 0.25,
+            });
+
+            const cy = window._cyGraph;
+            requestAnimationFrame(() => {
+                try { cy.resize(); cy.fit(undefined, 40); } catch (e) {}
+            });
+            cy.on('tap', 'node', (evt) => {
+                showGraphNodeDetail(evt.target.data(), evt.target.renderedPosition());
+            });
+            cy.on('tap', (evt) => {
+                if (evt.target === cy) hideGraphNodePanel();
+            });
+            cy.on('pan zoom', () => hideGraphNodePanel());
+
+            function setStatus(text, live) {
+                if (!statusEl) return;
+                statusEl.textContent = text;
+                statusEl.classList.toggle('is-live', !!live);
+            }
+            function setStep(text) {
+                if (stepEl) stepEl.textContent = text || '';
+            }
+
+            function finishReveal() {
+                cy.elements().removeClass('hidden-reveal dim');
+                setStatus(TRANS.graph_mapped || 'mapped', true);
+                setStep(sanctionedCount
+                    ? (TRANS.graph_sanctioned_links || '{n} sanctioned links').replace('{n}', sanctionedCount)
+                    : (TRANS.graph_network_mapped || 'network mapped'));
+                if (skipBtn) skipBtn.classList.add('hidden');
+                window._graphRevealSkip = null;
+            }
+
+            if (reduceMotion || nodes.length <= 1) {
+                finishReveal();
+                return;
+            }
+
+            const target = cy.nodes().filter(n => !!n.data('is_you'));
+            const sanctioned = cy.nodes().filter(n => !!n.data('is_sanctioned') && !n.data('is_you'));
+            const others = cy.nodes().filter(n => !n.data('is_you') && !n.data('is_sanctioned') && n.id() !== '_empty');
+            const allEdges = cy.edges();
+
+            cy.elements().addClass('hidden-reveal');
+            target.removeClass('hidden-reveal');
+
+            let cancelled = false;
+            let stepIdx = 0;
+            const queue = [];
+
+            queue.push(() => {
+                setStatus(TRANS.graph_scanning || 'scanning', true);
+                setStep(TRANS.graph_step_target || '1/4 · target wallet');
+                target.removeClass('hidden-reveal');
+            });
+            queue.push(() => {
+                setStep(TRANS.graph_step_cps || '2/4 · counterparties');
+                others.removeClass('hidden-reveal');
+            });
+            queue.push(() => {
+                setStep(TRANS.graph_step_flows || '3/4 · flows');
+                allEdges.removeClass('hidden-reveal');
+            });
+            queue.push(() => {
+                setStep(sanctioned.length
+                    ? (TRANS.graph_step_hit || '4/4 · sanctions hit')
+                    : (TRANS.graph_step_done || '4/4 · complete'));
+                sanctioned.removeClass('hidden-reveal');
+                if (sanctioned.length) {
+                    cy.elements().addClass('dim');
+                    sanctioned.removeClass('dim');
+                    target.removeClass('dim');
+                    sanctioned.connectedEdges().removeClass('dim');
+                    setTimeout(() => {
+                        if (!cancelled) cy.elements().removeClass('dim');
+                    }, 900);
+                }
+            });
+            queue.push(() => finishReveal());
+
+            function runNext() {
+                if (cancelled) return;
+                if (stepIdx >= queue.length) return;
+                queue[stepIdx++]();
+                if (stepIdx < queue.length) {
+                    window._graphRevealTimer = setTimeout(runNext, stepIdx === queue.length - 1 ? 700 : 520);
+                }
+            }
+
+            window._graphRevealSkip = () => {
+                cancelled = true;
+                if (window._graphRevealTimer) {
+                    clearTimeout(window._graphRevealTimer);
+                    window._graphRevealTimer = null;
+                }
+                finishReveal();
+            };
+            if (skipBtn) {
+                skipBtn.classList.remove('hidden');
+                skipBtn.textContent = TRANS.graph_skip || 'Skip';
+                skipBtn.onclick = () => {
+                    if (window._graphRevealSkip) window._graphRevealSkip();
+                };
+            }
+
+            setStatus(TRANS.graph_scanning || 'scanning', true);
+            runNext();
+        }
+
+        async function downloadPDF() {
+            const address = document.getElementById('address').value;
+            const chain = document.getElementById('chain').value;
+            const token = localStorage.getItem('token');
+            if (!token) { openAuthModal(); return; }
+            const pageLang = {{ lang|tojson }};
+            const res = await fetch(`/report?address=${encodeURIComponent(address)}&chain=${encodeURIComponent(chain)}&lang=${encodeURIComponent(pageLang)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) { alert('PDF requires login and balance'); return; }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
+        // Language Dropdown Logic
+        const langBtn = document.getElementById('lang-btn');
+        const langMenu = document.getElementById('lang-menu');
+        
+        if (langBtn && langMenu) {
+            langBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                langMenu.classList.toggle('hidden');
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!langBtn.contains(e.target) && !langMenu.contains(e.target)) {
+                    langMenu.classList.add('hidden');
                 }
             });
         }
-
-        function downloadPDF() {
-            const address = document.getElementById('address').value;
-            const chain = document.getElementById('chain').value;
-            window.open(`/report?address=${address}&chain=${chain}`, '_blank');
+    
+        async function disputeResult(address, chain, checkId) {
+            const token = localStorage.getItem('token');
+            if (!token) { openAuthModal(); return; }
+            const message = prompt('Describe why the result looks wrong:') || '';
+            if (!message) return;
+            await fetch('/auth/dispute', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address, chain, check_id: checkId || null, message })
+            });
+            alert('Dispute submitted. We will review.');
         }
-    </script>
+        function shareResult(token) {
+            if (!token) return;
+            const url = `${location.origin}/share/${token}`;
+            navigator.clipboard.writeText(url);
+            alert('Share link copied (7 day TTL)');
+        }
+</script>
 </body>
 </html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ trans.dir }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Условия использования — AML Guard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #020203;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(30, 27, 75, 0.35) 0%, transparent 38%),
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: #e2e8f0;
+        }
+        .glass-card {
+            background: rgba(2, 6, 23, 0.78);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <main class="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <a href="/?lang={{ lang }}" class="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition mb-6">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            Вернуться на главную
+        </a>
+        <div class="glass-card rounded-2xl p-6 md:p-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 mb-3">Условия использования</h1>
+            <p class="text-slate-400 text-sm mb-8">Актуально на 11 марта 2026</p>
+
+            <div class="space-y-7 text-slate-300 leading-relaxed">
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">1. Назначение сервиса</h2>
+                    <p>AML Guard предоставляет информационно-аналитический сервис оценки рисков блокчейн-адресов и транзакций. Результаты сервиса носят рекомендательный характер и не являются юридическим заключением.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">2. Аккаунт и доступ</h2>
+                    <p>Пользователь несёт ответственность за сохранность данных доступа к аккаунту. Пользователь обязан использовать сервис законно и не предпринимать действий, нарушающих работу платформы.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">3. Платежи и тарифы</h2>
+                    <p>Стоимость проверок и функциональных модулей указывается на сайте. Оплаченные услуги считаются оказанными с момента выполнения анализа и предоставления результатов в интерфейсе или PDF-отчёте.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">4. Ограничение ответственности</h2>
+                    <p>Сервис использует внешние источники данных и эвристические модели. AML Guard не гарантирует абсолютную полноту, точность и отсутствие задержек в обновлении источников.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">5. Запрещённые сценарии</h2>
+                    <p>Запрещено использование платформы для обхода санкционных режимов, незаконного мониторинга, взлома, спама и любых действий, нарушающих применимое законодательство.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">6. Интеллектуальная собственность</h2>
+                    <p>Интерфейс, дизайн, аналитические модели и контент сервиса принадлежат AML Guard или используются на законных основаниях. Копирование без разрешения запрещено.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">7. Изменение условий</h2>
+                    <p>Мы можем обновлять условия использования. Продолжение работы с сервисом после публикации новой редакции означает согласие с обновлёнными условиями.</p>
+                </section>
+                <section>
+                    <h2 class="text-white text-xl font-semibold mb-2">8. Контакты</h2>
+                    <p>По правовым вопросам: <a class="text-cyan-400 hover:text-cyan-300 transition" href="mailto:hello@amlguard.ai">hello@amlguard.ai</a></p>
+                </section>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

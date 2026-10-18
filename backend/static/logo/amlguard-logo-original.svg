@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-label="AML Guard logo original">
+  <title>AML Guard logo original</title>
+  <g fill="none" stroke="#000000" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="500" cy="250" r="230"/>
+    <path d="M272 250a228 228 0 0 0 96.5 185.5V370c-48-24.6-80-69.4-80-120z"/>
+    <path d="M728 250a228 228 0 0 1-96.5 185.5V370c48-24.6 80-69.4 80-120z"/>
+    <circle cx="500" cy="250" r="165"/>
+    <path d="M335 250a165 165 0 0 0 65 131v-51.5c-30.4-19.2-50-53-50-79.5z"/>
+    <path d="M665 250a165 165 0 0 1-65 131v-51.5c30.4-19.2 50-53 50-79.5z"/>
+    <rect x="455" y="305" width="90" height="150" rx="45"/>
+  </g>
+</svg>

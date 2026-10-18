@@ -1,0 +1,68 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+*.spec
+
+# ── Virtual environments ──────────────────────────────────────
+.venv/
+.venv*/
+venv/
+venv*/
+env/
+
+# ── Secrets & Config — NEVER commit ──────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Databases ─────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+cloudflared.log
+uvicorn.log
+bot.log
+
+# ── Generated PDFs ────────────────────────────────────────────
+*.pdf
+report_*.pdf
+sample_report.pdf
+AML_Guard_Sample_Report_*.pdf
+
+# ── Deploy archives ───────────────────────────────────────────
+*.tar.gz
+*.zip
+aml_deploy*
+
+# ── macOS ─────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Test / CI cache ───────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# ── Misc ──────────────────────────────────────────────────────
+create_package.sh
