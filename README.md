@@ -1,233 +1,200 @@
 <div align="center">
+  <h1>🛡️ AML Guard</h1>
+  <p><strong>Production-ready Anti-Money Laundering API for crypto compliance</strong><br/>
+  Analyzes wallets across 5 blockchains · Scores risk 0–100 · Generates PDF reports · Runs inside Telegram</p>
 
-# 🛡️ AML Guard
-
-**Crypto wallet AML checker with risk scoring, transaction graph, and PDF reports**
-
-[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
-[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io)
-[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
-
-[🚀 Live Demo](#) · [📖 API Docs](#) · [🤖 Telegram Bot](#)
-
+  [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+  [![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+  [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+  [![Telegram](https://img.shields.io/badge/Telegram-Mini_App-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://core.telegram.org/bots/webapps)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 </div>
 
 ---
 
-## 📋 Overview
+## What Is This?
 
-**AML Guard** is a production-grade Anti-Money Laundering service for crypto compliance teams and exchanges. It analyzes blockchain wallet addresses across 5 networks, scores them by risk level using a proprietary engine, and generates professional PDF reports — all accessible via a Telegram Mini App or REST API.
+AML Guard is a **full-stack compliance service** built for crypto exchanges, payment processors, and compliance teams who need to screen blockchain addresses before accepting deposits.
 
-```
-Input: crypto wallet address
-  ↓
-Multi-chain data fetch (ETH / TRON / BNB / SOL / TON)
-  ↓
-Risk Engine: OFAC scan + counterparty exposure + behavioral heuristics
-  ↓
-Risk Score 0–100 → LOW / CAUTION / HIGH / CRITICAL
-  ↓
-Output: JSON response + PDF report + Telegram notification
-```
+You submit a wallet address → the system fetches on-chain data across **5 networks** in parallel → runs it through a **custom risk scoring engine** (OFAC sanctions, counterparty exposure, behavioral heuristics) → returns a score from 0 to 100 with a detailed breakdown → optionally generates a signed **PDF report** for auditors.
 
----
-
-## ⚡ Risk Score Levels
-
-| Score | Level | Meaning |
-|-------|-------|---------|
-| 0–19 | ✅ **LOW** | Clean — Tier-1 CEX eligible |
-| 20–39 | ⚠️ **CAUTION** | Enhanced Due Diligence recommended |
-| 40–74 | 🚫 **HIGH** | Manual Compliance / EDD required |
-| 75–100 | ❌ **CRITICAL** | Block / Hard Reject |
-
----
-
-## 🌐 Supported Blockchains
-
-| Chain | Native | USDT | Token Scan | Tx Graph |
-|-------|--------|------|-----------|---------|
-| Ethereum (ETH) | ✅ | ✅ | ✅ | ✅ |
-| TRON (TRX) | ✅ | ✅ | ✅ | ✅ |
-| BNB Smart Chain | ✅ | ✅ | ✅ | ✅ |
-| Solana (SOL) | ✅ | ✅ | ✅ | ✅ |
-| TON | ✅ | ✅ | ✅ | — |
-
----
-
-## 🏗️ Architecture
+The whole thing is exposed as a **REST API** and embedded as a **Telegram Mini App** with a credit-based billing system.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Telegram Mini App                      │
-│              (webapp.html — Cytoscape.js)               │
-└─────────────────────┬───────────────────────────────────┘
-                      │ HTTPS
-┌─────────────────────▼───────────────────────────────────┐
-│                    FastAPI Backend                        │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐  │
-│  │   auth   │  │ payments │  │ account  │  │monitor │  │
-│  └──────────┘  └──────────┘  └──────────┘  └────────┘  │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │              Services Layer                        │  │
-│  │  risk_engine │ chain │ sanctions │ graph │ report  │  │
-│  └───────────────────────────────────────────────────┘  │
-└──────────┬──────────────────────────────┬───────────────┘
-           │                              │
-    ┌──────▼──────┐              ┌────────▼────────┐
-    │  PostgreSQL │              │      Redis       │
-    │  SQLAlchemy │              │  (rate limiting) │
-    └─────────────┘              └─────────────────┘
+  Wallet Address
+       │
+       ▼
+┌──────────────────────────────────────────────────┐
+│  Chain Fetcher (async, parallel)                  │
+│  ETH · TRON · BNB · Solana · TON                 │
+└─────────────────────┬────────────────────────────┘
+                      │
+                      ▼
+┌──────────────────────────────────────────────────┐
+│  Risk Engine                                      │
+│  ├─ OFAC sanctions scan      → score 0 or 100    │
+│  ├─ Counterparty exposure    → weighted by volume │
+│  ├─ Behavioral heuristics    → mixer / tumbler    │
+│  ├─ Fake asset detection     → counterfeit USDT   │
+│  └─ Label database 10k+      → CEX / DEX / dark  │
+└─────────────────────┬────────────────────────────┘
+                      │
+                      ▼
+        Risk Score  0 ──────────────────── 100
+                   LOW   CAUTION  HIGH  CRITICAL
+                      │
+             ┌────────┴────────┐
+             ▼                 ▼
+         JSON API          PDF Report
+      + Telegram         (ReportLab 4,
+       Mini App           signed hash)
 ```
 
 ---
 
-## 🔬 Risk Engine Details
+## Risk Levels
 
-- **Counterparty exposure** — weighted by transaction volume, not raw counts
-- **Dust filtering** — ignores airdrops < $10 / < 0.5% of wallet volume
-- **OFAC sanctions matching** — direct hits score 100 (instant CRITICAL)
-- **Fake asset detection** — identifies counterfeit USDT/USDC tokens
-- **Behavioral heuristics** — mixer/tumbler patterns, round-amount clustering, rapid chaining
-- **Label-based scoring** — 10 000+ known entities (CEX, DEX, bridges, darknet markets)
-- **Signal confidence levels** — `low / medium / high` with source attribution
+| Score | Label | Action |
+|------:|-------|--------|
+| **0 – 19** | ✅ LOW | Safe to proceed — Tier-1 CEX eligible |
+| **20 – 39** | ⚠️ CAUTION | Enhanced Due Diligence recommended |
+| **40 – 74** | 🚫 HIGH | Compliance review required before processing |
+| **75 – 100** | ❌ CRITICAL | Hard block — OFAC hit or confirmed mixer |
 
 ---
 
-## 🚀 Quick Start
+## Supported Blockchains
 
-### Prerequisites
-- Python 3.12+
-- Redis
-- Docker + Docker Compose (for production)
+| Chain | Native | USDT | Tokens | Tx Graph | Deep Graph |
+|-------|:------:|:----:|:------:|:--------:|:----------:|
+| Ethereum | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TRON | ✅ | ✅ | ✅ | ✅ | ✅ |
+| BNB Smart Chain | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Solana | ✅ | ✅ | ✅ | ✅ | ✅ |
+| TON | ✅ | ✅ | ✅ | ✅ | — |
 
-### 1. Clone & setup
+---
+
+## Key Features
+
+- **Multi-hop graph expansion** — traces funds up to N hops deep, identifies indirect exposure to sanctioned entities
+- **Rotating USDT deposit pool** — each user gets a unique deposit address, auto-screened against OFAC before crediting
+- **Telegram Stars payments** — one-click credit purchases inside Telegram with idempotency guarantees
+- **Background monitoring workers** — async Celery-style workers track flagged wallets continuously
+- **Alembic migrations** — full schema versioning, zero-downtime upgrades
+- **Rate limiting** — SlowAPI with Cloudflare real-IP awareness, per-user limits
+- **Signed PDF reports** — each report has a unique verification URL (`/api/v1/verify/{id}`)
+- **pytest test suite** — 12+ test modules covering payments, auth, graph, billing
+
+---
+
+## Tech Stack
+
+| Layer | Choice | Why |
+|-------|--------|-----|
+| API | FastAPI + uvicorn | Async, auto-OpenAPI, fastest Python framework |
+| ORM | SQLAlchemy 2.0 | Async sessions, type-safe queries |
+| DB | PostgreSQL 16 | JSONB for flexible tx data, full ACID |
+| Cache | Redis 7 | Rate limiting, daily counters, dedup |
+| Auth | JWT + HMAC (Telegram initData) | Dual auth: web + Telegram |
+| PDF | ReportLab 4 | Full control over layout, fonts, charts |
+| Graph UI | Cytoscape.js | Interactive transaction graph in browser |
+| Payments | Telegram Stars + USDT (multi-chain) | No card required for users |
+| Deploy | Docker Compose + Cloudflare Tunnel | Zero-port-exposure production setup |
+| Migrations | Alembic | Versioned, reversible schema changes |
+| Tests | pytest + pytest-asyncio | Async-native test runner |
+
+---
+
+## API Reference
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|:----:|-------------|
+| `POST` | `/auth/register` | — | Create account |
+| `POST` | `/auth/token` | — | JWT login |
+| `POST` | `/auth/telegram` | — | Telegram OAuth via initData HMAC |
+| `GET` | `/auth/me` | 🔒 | Current user & credit balance |
+| `POST` | `/check` | 🔒 | Run AML check (costs 1 credit) |
+| `GET` | `/history` | 🔒 | Paginated check history |
+| `POST` | `/payments/create` | 🔒 | Create Stars/USDT payment session |
+| `POST` | `/payments/stars/webhook` | HMAC | Telegram Stars fulfillment callback |
+| `GET` | `/api/v1/verify/{id}` | — | Public report verification |
+| `GET` | `/graph/deep` | 🔒 | Multi-hop graph (depth, filters) |
+| `POST` | `/monitors/` | 🔒 | Subscribe to wallet monitoring |
+
+Full interactive docs: `http://localhost:8000/docs`
+
+---
+
+## Quick Start
 
 ```bash
+# 1. Clone
 git clone https://github.com/daudbro73-collab/Checker.git
 cd Checker
+
+# 2. Configure
 cp .env.example backend/.env
-# Edit backend/.env with your API keys
-```
+# Edit: SECRET_KEY, BOT_TOKEN, OPENAI_API_KEY, blockchain API keys
 
-### 2. Install dependencies
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
+# 3. Install
+cd backend && python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 3. Initialize DB
-
-```bash
+# 4. Init DB
 python -c "from database import init_db; init_db()"
 python scripts/seed_admin.py
-```
 
-### 4. Run
-
-```bash
+# 5. Run
 uvicorn main:app --reload --port 8000
 ```
 
-| URL | Description |
-|-----|-------------|
-| `http://localhost:8000` | Landing page |
-| `http://localhost:8000/webapp` | Telegram Mini App |
-| `http://localhost:8000/docs` | Swagger API docs |
+| URL | What |
+|-----|------|
+| `localhost:8000` | Landing page |
+| `localhost:8000/webapp` | Telegram Mini App UI |
+| `localhost:8000/docs` | Swagger / OpenAPI |
 
----
-
-## 🐳 Docker Compose (Production)
+### Docker (Production)
 
 ```bash
-cp .env.example .env
-# Fill: SECRET_KEY, BOT_TOKEN, OPENAI_API_KEY, payment addresses
-
-docker compose up -d
+cp .env.example .env   # fill all secrets
+docker compose up -d   # starts api + postgres + redis + worker
 ```
 
-| Service | Port | Description |
-|---------|------|-------------|
-| `api` | 8002 | FastAPI application |
-| `postgres` | 5432 | PostgreSQL 16 database |
-| `redis` | 6379 | Redis 7 cache |
-| `worker` | — | Background sync worker |
-
 ---
 
-## 🔌 API Overview
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/auth/register` | Email registration |
-| `POST` | `/auth/token` | JWT login |
-| `POST` | `/auth/telegram` | Telegram OAuth (init_data) |
-| `GET` | `/auth/me` | Current user profile |
-| `POST` | `/check` | Run AML check (1 credit) |
-| `GET` | `/history` | Check history |
-| `POST` | `/payments/create` | Create payment session |
-| `POST` | `/payments/stars/webhook` | Telegram Stars callback |
-| `GET` | `/api/v1/verify/{id}` | Public report verification |
-| `GET` | `/graph/deep` | Multi-hop graph expansion |
-| `POST` | `/monitors/` | Add wallet to monitoring |
-
-Full Swagger docs at `/docs`.
-
----
-
-## 💡 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Backend | FastAPI, Python 3.12 |
-| ORM | SQLAlchemy 2.0 |
-| Database | SQLite (dev) / PostgreSQL 16 (prod) |
-| Cache | Redis 7 |
-| Auth | JWT (python-jose), Telegram Bot API |
-| PDF Reports | ReportLab 4 |
-| Graph | Cytoscape.js |
-| Payments | Telegram Stars, USDT multi-chain |
-| Deployment | Docker Compose, Cloudflare Tunnel |
-| Migrations | Alembic |
-| Tests | pytest, pytest-asyncio |
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 Checker/
 ├── backend/
-│   ├── main.py                 # FastAPI app entry point
-│   ├── config.py               # Environment-driven settings
-│   ├── database.py             # SQLAlchemy models
-│   ├── dependencies.py         # Auth guards, DI
+│   ├── main.py               # FastAPI entry, lifespan, CORS
+│   ├── config.py             # Pydantic Settings (env-driven)
+│   ├── database.py           # SQLAlchemy models + init_db
+│   ├── dependencies.py       # JWT guard, get_current_user
 │   ├── routers/
-│   │   ├── auth.py             # JWT + Telegram OAuth
-│   │   ├── payments.py         # Stars, USDT, deposit pool
-│   │   ├── account.py          # History, profile
-│   │   └── monitors.py         # Wallet monitoring
+│   │   ├── auth.py           # Register, login, Telegram OAuth
+│   │   ├── payments.py       # Stars webhook, USDT, deposit pool
+│   │   ├── account.py        # Profile, history, credit balance
+│   │   └── monitors.py       # Wallet monitoring CRUD
 │   ├── services/
-│   │   ├── risk_engine.py      # ⭐ Core AML scoring engine
-│   │   ├── chain.py            # Multi-chain data fetcher
-│   │   ├── sanctions.py        # OFAC + blocklist matching
-│   │   ├── graph.py            # Transaction graph builder
-│   │   ├── deep_graph.py       # Multi-hop graph expansion
-│   │   ├── report_v2.py        # PDF report generator
-│   │   ├── billing.py          # Credit system
-│   │   └── deposit_pool.py     # Rotating USDT deposit pool
-│   ├── templates/
-│   │   ├── webapp.html         # Telegram Mini App UI
-│   │   └── index.html          # Landing page
-│   ├── alembic/                # DB migrations
-│   └── tests/                  # pytest test suite
+│   │   ├── risk_engine.py    # ⭐ Core scoring (800+ lines)
+│   │   ├── chain.py          # Async multi-chain fetcher
+│   │   ├── sanctions.py      # OFAC + custom blocklist
+│   │   ├── graph.py          # 1-hop transaction graph
+│   │   ├── deep_graph.py     # N-hop recursive expansion
+│   │   ├── report_v2.py      # PDF generator + signer
+│   │   ├── billing.py        # Credit deduction + refunds
+│   │   ├── deposit_pool.py   # Rotating address pool
+│   │   └── payments/         # Stars + provider adapters
+│   ├── alembic/              # DB migrations (versioned)
+│   ├── tests/                # 12 pytest modules
+│   └── templates/
+│       ├── webapp.html       # Telegram Mini App (Cytoscape)
+│       └── index.html        # Public landing page
 ├── Dockerfile
 ├── docker-compose.yml
 └── .env.example
@@ -235,32 +202,29 @@ Checker/
 
 ---
 
-## 🛡️ Security
+## Security
 
-- **JWT** authentication with configurable expiry
-- **HMAC validation** of Telegram `initData`
-- **Bcrypt** password hashing (passlib)
-- **Rate limiting** via SlowAPI (Cloudflare-aware real IP)
-- **CORS** restricted to known origins
-- **No hardcoded secrets** — 100% environment variables
-- **OFAC screening** before crediting any deposit
+- JWT tokens (python-jose) with configurable expiry + refresh
+- Telegram `initData` validated via HMAC-SHA256 (bot token as key)
+- Bcrypt password hashing (passlib, rounds=12)
+- Rate limiting per real IP (SlowAPI + Cloudflare CF-Connecting-IP header)
+- CORS restricted to explicit origin list
+- All secrets via environment variables — nothing hardcoded
+- OFAC screen runs **before** crediting any crypto deposit
 
 ---
 
-## 🧪 Tests
+## Tests
 
 ```bash
-cd backend && pytest tests/ -v
+cd backend && pytest tests/ -v --tb=short
 ```
 
-Covers: Stars payment fulfillment, Stars↔USD conversion, payment provider sessions, auth flows, graph expansion, deposit pool logic.
+Covers: Stars fulfillment idempotency · Stars↔USD conversion · USDT payment sessions · JWT auth flow · HMAC Telegram validation · graph expansion depth · deposit pool rotation · billing deductions
 
 ---
 
 <div align="center">
-
-Built with ❤️ by **Rustam Berheev**
-
-[![GitHub](https://img.shields.io/badge/GitHub-daudbro73--collab-181717?style=flat-square&logo=github)](https://github.com/daudbro73-collab)
-
+  <strong>Built by Rustam Berheev</strong><br/>
+  <a href="https://github.com/daudbro73-collab">github.com/daudbro73-collab</a>
 </div>
